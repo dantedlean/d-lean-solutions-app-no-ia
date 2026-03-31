@@ -1,4 +1,3 @@
-/* Tailwind config for the frontend react app. This is where the app theme should be defined: https://v2.tailwindcss.com/docs/configuration. */
 import type { Config } from 'tailwindcss'
 import animatePlugin from 'tailwindcss-animate'
 import typographyPlugin from '@tailwindcss/typography'
@@ -27,7 +26,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
+        sans: ['Inter var', 'Inter', 'SF Pro Display', 'system-ui', 'sans-serif'],
         display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
       },
       colors: {
@@ -86,6 +85,21 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
+          '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' },
+        },
+        'blueprint-pan': {
+          '0%': { backgroundPosition: '0 0' },
+          '100%': { backgroundPosition: '40px 40px' },
+        },
+      },
+      animation: {
+        shake: 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+        'blueprint-pan': 'blueprint-pan 10s linear infinite',
       },
       transitionProperty: {
         width: 'width',
