@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Plus, TrendingUp, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Plus, TrendingUp, Clock, CheckCircle2, AlertCircle, FilePlus2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
