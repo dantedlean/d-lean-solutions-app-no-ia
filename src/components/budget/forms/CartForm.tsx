@@ -25,16 +25,38 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
   const height = parseFloat(data.alturaBase || '0')
   const isError = casterMm > 0 && height > 0 && height < casterMm + 20
 
+  const formatDimensions = (val: string) => {
+    const rawDigits = (val || '').replace(/\D/g, '').substring(0, 12)
+    let display = ''
+    for (let i = 0; i < rawDigits.length; i++) {
+      if (i > 0 && i % 4 === 0) display += ' x '
+      display += rawDigits[i]
+    }
+    return display
+  }
+
+  const dimensoesDisplay = formatDimensions(data.dimensoes)
+  const shadowTemplate = '0000 x 0000 x 0000 mm'
+  const shadowSuffix = shadowTemplate.substring(dimensoesDisplay.length)
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Dimensões Externas</Label>
-          <Input
-            placeholder="0000 x 0000 x 0000 mm"
-            onChange={(e) => update('dimensoes', e.target.value)}
-          />
-        </div>
+          <div className="relative w-full">
+            <div className="absolute inset-0 flex items-center px-3 text-base md:text-sm pointer-events-none font-mono text-muted-foreground z-0">
+              <span className="opacity-0">{dimensoesDisplay}</span>
+              <span className="opacity-40">{shadowSuffix}</span>
+            </div>
+            <Input
+              className="relative z-10 bg-transparent font-mono placeholder:text-transparent"
+              value={dimensoesDisplay}
+              onChange={(e) => update('dimensoes', formatDimensions(e.target.value))}
+              placeholder="0000 x 0000 x 0000 mm"
+            />
+          </div>
+        </div>{' '}
         <div className="space-y-2">
           <Label>Peso do Produto (kg)</Label>
           <Input type="number" onChange={(e) => update('peso', e.target.value)} />
