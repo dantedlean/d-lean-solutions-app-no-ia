@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ClientInfoForm } from '@/components/budget/ClientInfoForm'
 import { EquipmentMatrix } from '@/components/budget/EquipmentMatrix'
 import { UploadSection } from '@/components/budget/UploadSection'
 import { AiConceptPreview } from '@/components/budget/AiConceptPreview'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Save } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -21,21 +22,43 @@ export default function Index() {
     files: [],
   })
 
+  const orderNumber = useMemo(() => {
+    const year = new Date().getFullYear()
+    const seq = Math.floor(Math.random() * 900) + 100
+    return `#ORC-${year}-${seq}`
+  }, [])
+
   const handleConsolidate = () => {
     toast({
       title: 'Orçamento Consolidado!',
       description: 'Dados salvos no CRM e fluxo de engenharia iniciado.',
     })
-    console.log('Saving budget structure:', budgetData)
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20 animate-fade-in-up">
+    <div className="max-w-5xl mx-auto space-y-6 pb-20 animate-fade-in-up">
+      <div className="flex items-center justify-between bg-white p-4 md:p-6 rounded-xl shadow-sm border">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-12 w-12 border">
+            <AvatarImage src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1" />
+            <AvatarFallback>VD</AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-bold text-[#1e4b8f]">João Silva</h3>
+            <p className="text-xs text-muted-foreground">Consultor Técnico D-Lean</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground">Nº do Pedido</p>
+          <p className="font-mono font-bold text-lg md:text-xl text-[#d62828]">{orderNumber}</p>
+        </div>
+      </div>
+
       <div className="border-b-4 border-[#d62828] pb-4">
         <h2 className="text-3xl font-bold text-[#1e4b8f]">Novo Orçamento / Briefing</h2>
         <p className="text-muted-foreground mt-1">
-          Preencha os dados abaixo para gerar a estrutura de engenharia em formato de "Conjunto" e
-          acionar a IA de conceito.
+          Preencha os dados abaixo seguindo o fluxo de engenharia para gerar a estrutura em
+          "Conjunto".
         </p>
       </div>
 

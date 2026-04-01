@@ -12,6 +12,36 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Building2 } from 'lucide-react'
 
+const UFS = [
+  'AC',
+  'AL',
+  'AP',
+  'AM',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MT',
+  'MS',
+  'MG',
+  'PA',
+  'PB',
+  'PR',
+  'PE',
+  'PI',
+  'RJ',
+  'RN',
+  'RS',
+  'RO',
+  'RR',
+  'SC',
+  'SP',
+  'SE',
+  'TO',
+]
+
 export function ClientInfoForm({ onChange }: { onChange: (data: any) => void }) {
   const [cnpj, setCnpj] = useState('')
   const [razao, setRazao] = useState('')
@@ -27,7 +57,7 @@ export function ClientInfoForm({ onChange }: { onChange: (data: any) => void }) 
     setCnpj(v)
 
     if (v.length === 18) {
-      toast({ title: 'Consultando API...' })
+      toast({ title: 'Consultando API da Receita/Maxiprod...' })
       setTimeout(() => {
         setRazao('Indústrias Exemplo S/A')
         setUf('SP')
@@ -79,10 +109,11 @@ export function ClientInfoForm({ onChange }: { onChange: (data: any) => void }) 
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="SP">São Paulo</SelectItem>
-              <SelectItem value="RJ">Rio de Janeiro</SelectItem>
-              <SelectItem value="MG">Minas Gerais</SelectItem>
-              <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+              {UFS.map((st) => (
+                <SelectItem key={st} value={st}>
+                  {st}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

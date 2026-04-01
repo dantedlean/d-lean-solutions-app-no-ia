@@ -28,16 +28,16 @@ export function UploadSection({ onFiles }: { onFiles: (files: File[]) => void })
   }
 
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm border-t-4 border-t-[#d62828]">
       <CardHeader>
-        <CardTitle className="text-lg text-[#1e4b8f]">Gestão de Documentos</CardTitle>
+        <CardTitle className="text-lg text-[#d62828]">Uploads e Documentação</CardTitle>
         <CardDescription>
           Anexe referências visuais e técnicas para a engenharia e IA.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Dropzone title="Fotos do Local/Processo" icon={FileImage} />
-        <Dropzone title="Documentos Técnicos" icon={FileText} />
+        <Dropzone title="Documentos Técnicos (PDF/Planilha)" icon={FileText} />
         <Dropzone
           title="Croqui Principal (Base para IA)"
           icon={Sparkles}
