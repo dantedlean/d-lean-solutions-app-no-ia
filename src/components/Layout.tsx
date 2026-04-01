@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, FilePlus2, Users, BookOpen, Wifi, Database, Menu } from 'lucide-react'
+import { FilePlus2, Users, BookOpen, Wifi, Database, Menu } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -14,15 +14,12 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { useIsMobile } from '@/hooks/use-mobile'
 
 function AppSidebar() {
   const location = useLocation()
 
   const menuItems = [
-    { title: 'Dashboard', icon: LayoutDashboard, url: '/' },
-    { title: 'Novo Orçamento', icon: FilePlus2, url: '/new-budget' },
+    { title: 'Novo Orçamento', icon: FilePlus2, url: '/' },
     { title: 'Banco de Clientes', icon: Users, url: '/clients' },
     { title: 'Catálogo Técnico', icon: BookOpen, url: '/catalog' },
   ]
@@ -30,8 +27,8 @@ function AppSidebar() {
   return (
     <Sidebar variant="inset">
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-border/50">
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-primary-foreground">
+        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-[#1e4b8f]">
+          <div className="w-8 h-8 bg-[#d62828] rounded-md flex items-center justify-center text-white">
             D
           </div>
           D-Lean
@@ -56,10 +53,17 @@ function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground mb-1">Vendedor Ativo</p>
-          <p>João Silva</p>
-          <p>Matrícula: 4892</p>
+        <div className="bg-muted/50 rounded-lg p-3 text-xs flex items-center gap-3">
+          <img
+            src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=1"
+            alt="Avatar"
+            className="w-10 h-10 rounded-full border-2 border-[#1e4b8f]"
+          />
+          <div>
+            <p className="font-semibold text-[#1e4b8f] mb-0.5">João Silva</p>
+            <p className="text-[#d62828] font-bold text-[10px] uppercase">Consultor Técnico</p>
+            <p className="text-muted-foreground text-[10px] mt-0.5">ID: 4892</p>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
@@ -67,8 +71,8 @@ function AppSidebar() {
 }
 
 function GlobalHeader() {
-  const isMobile = useIsMobile()
   const { toggleSidebar } = useSidebar()
+  const orderNumber = `#ORC-2026-${Math.floor(Math.random() * 900) + 100}`
 
   return (
     <header className="h-16 border-b bg-background flex items-center justify-between px-4 sticky top-0 z-40">
@@ -77,9 +81,12 @@ function GlobalHeader() {
           <Menu className="h-5 w-5" />
         </Button>
         <SidebarTrigger className="hidden md:flex" />
-        <h1 className="text-lg font-semibold text-foreground hidden sm:block">
-          Plataforma de Engenharia
-        </h1>
+        <div className="flex flex-col">
+          <h1 className="text-lg font-semibold text-[#1e4b8f] hidden sm:block leading-tight">
+            Plataforma de Engenharia
+          </h1>
+          <span className="text-xs font-bold text-[#d62828] hidden sm:block">{orderNumber}</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-6 overflow-x-auto no-scrollbar mask-edges pr-4">
@@ -87,7 +94,7 @@ function GlobalHeader() {
           <span className="text-[10px] uppercase text-muted-foreground font-semibold">
             Orçamentos Mês
           </span>
-          <span className="text-sm font-bold text-primary">124</span>
+          <span className="text-sm font-bold text-[#1e4b8f]">124</span>
         </div>
         <div className="flex flex-col items-end min-w-max">
           <span className="text-[10px] uppercase text-muted-foreground font-semibold">
@@ -95,11 +102,9 @@ function GlobalHeader() {
           </span>
           <span className="text-sm font-bold text-green-600">68%</span>
         </div>
-        <div className="flex flex-col items-end min-w-max">
-          <span className="text-[10px] uppercase text-muted-foreground font-semibold">
-            Aguardando Eng.
-          </span>
-          <span className="text-sm font-bold text-destructive">12</span>
+        <div className="flex flex-col items-end min-w-max text-[#d62828]">
+          <span className="text-[10px] uppercase font-semibold">Aguardando Eng.</span>
+          <span className="text-sm font-bold">12</span>
         </div>
       </div>
     </header>
@@ -111,13 +116,13 @@ function GlobalFooter() {
     <footer className="h-10 border-t bg-background flex items-center justify-between px-4 text-xs text-muted-foreground mt-auto">
       <span>D-Lean Solutions © 2026</span>
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5" title="Maxiprod ERP Connected">
+        <div className="flex items-center gap-1.5">
           <Database className="w-3.5 h-3.5 text-green-500" />
-          <span className="hidden sm:inline">Maxiprod ERP</span>
+          <span className="hidden sm:inline">Maxiprod ERP Connected</span>
         </div>
-        <div className="flex items-center gap-1.5" title="AI Validation Active">
+        <div className="flex items-center gap-1.5">
           <Wifi className="w-3.5 h-3.5 text-blue-500" />
-          <span className="hidden sm:inline">AI Engine Ativa</span>
+          <span className="hidden sm:inline">Nano Banana AI Ativa</span>
         </div>
       </div>
     </footer>

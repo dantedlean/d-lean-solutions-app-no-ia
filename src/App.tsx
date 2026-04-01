@@ -3,7 +3,6 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
-import NewBudget from './pages/NewBudget'
 import ClientDatabase from './pages/ClientDatabase'
 import TechnicalCatalog from './pages/TechnicalCatalog'
 import NotFound from './pages/NotFound'
@@ -17,7 +16,6 @@ const App = () => (
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
-          <Route path="/new-budget" element={<NewBudget />} />
           <Route path="/clients" element={<ClientDatabase />} />
           <Route path="/catalog" element={<TechnicalCatalog />} />
         </Route>
