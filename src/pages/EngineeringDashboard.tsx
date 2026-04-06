@@ -1,103 +1,940 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { Card } from '@/components/ui/card'
-import { HardHat } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  UserPlus,
+  Save,
+  AlertCircle,
+  Calendar,
+  MessageSquare,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { ProjectList } from '@/components/engineering/ProjectList'
-import { ProjectHeader } from '@/components/engineering/ProjectHeader'
-import { EquipmentList } from '@/components/engineering/EquipmentList'
-import { AttachmentList } from '@/components/engineering/AttachmentList'
+import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { formatDistanceToNow, format } from 'date-fns'
+import { Wand2, Package, Paperclip, FileText } from 'lucide-react'
+import { ptBR } from 'date-fns/locale'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 
-export default function EngineeringDashboard() {
-  const [quotes, setQuotes] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedQuote, setSelectedQuote] = useState<any>(null)
-  const { toast } = useToast()
+const formatConfigKey = (key: string) => {
+  const map: Record<string, string> = {
+    width: 'Largura',
+    height: 'Altura',
+    depth: 'Profundidade',
+    length: 'Comprimento',
+    material: 'Material',
+    color: 'Cor RAL',
+    colorDetails: 'Detalhes da Cor',
+    assembly: 'Método de Montagem',
+    accessories: 'Acessórios',
+    levels: 'Níveis',
+    type: 'Tipo',
+    capacity: 'Capacidade',
+    weight: 'Peso',
+    floorType: 'Tipo de Piso',
+    environment: 'Ambiente',
+  }
+  return map[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')
+}
 
-  useEffect(() => {
-    fetchQuotes()
-  }, [])
+const formatCompanyName = (task: any) => {
+  const company = task.quotes?.data?.company
+  let name = company?.nome_fantasia || company?.razao_social || task.quotes?.client_name
+  if (!name) return 'Cliente Desconhecido'
 
-  const fetchQuotes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select(`*, quote_engineering_status (*)`)
-        .order('created_at', { ascending: false })
+  let cleanName = name
+    .replace(/\b(LTDA|S\.A\.|S\/A|ME|EPP|EI|EIRELI|-)\b/gi, '')
+    .replace(/[.,]/g, '')
+    .trim()
+  const parts = cleanName.split(/[\s-]+/)
+  cleanName = parts[0]
 
-      if (error) throw error
-      setQuotes(data || [])
-    } catch (error) {
-      console.error('Error fetching quotes:', error)
-      toast({
-        title: 'Erro ao carregar',
-        description: 'Não foi possível carregar a lista de projetos.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
+  const city = company?.municipio || task.quotes?.data?.customer?.city
+  if (city) {
+    const formattedCity = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase()
+    return `${cleanName} - ${formattedCity}`
+  }
+  return cleanName
+}
+
+const GanttChart = ({ tasks }: { tasks: any[] }) => {
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('week')
+
+  const now = new Date()
+  const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  const windowEnd = new Date(windowStart)
+  if (viewMode === 'day') {
+    windowEnd.setDate(windowEnd.getDate() + 1)
+  } else {
+    windowEnd.setDate(windowEnd.getDate() + 7)
+  }
+
+  const totalMs = windowEnd.getTime() - windowStart.getTime()
+  const columns = viewMode === 'day' ? 24 : 7
+
+  const labels = Array.from({ length: columns }).map((_, i) => {
+    if (viewMode === 'day') {
+      return `${String(i).padStart(2, '0')}:00`
+    } else {
+      const d = new Date(windowStart.getTime() + i * 24 * 60 * 60 * 1000)
+      return format(d, 'EEEE, dd/MM', { locale: ptBR })
+    }
+  })
+
+  const getTaskStyle = (task: any) => {
+    const start = task.start_date ? new Date(task.start_date) : new Date(task.created_at)
+    const end = task.deadline
+      ? new Date(task.deadline)
+      : new Date(start.getTime() + 2 * 60 * 60 * 1000)
+
+    let startMs = start.getTime() - windowStart.getTime()
+    let endMs = end.getTime() - windowStart.getTime()
+
+    if (endMs < 0 || startMs > totalMs) return null
+
+    if (startMs < 0) startMs = 0
+    if (endMs > totalMs) endMs = totalMs
+
+    const left = (startMs / totalMs) * 100
+    const width = ((endMs - startMs) / totalMs) * 100
+    const isDelayed =
+      task.deadline &&
+      new Date(task.deadline).getTime() < now.getTime() &&
+      task.status !== 'aprovado'
+
+    return {
+      left: `${left}%`,
+      width: `${Math.max(width, 1)}%`,
+      isDelayed,
+      start,
+      end,
     }
   }
 
   return (
-    <div className="container mx-auto py-8 animate-fade-in-up px-4 max-w-7xl">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-blue-100 text-blue-700 rounded-lg">
-          <HardHat className="w-8 h-8" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Painel de Engenharia</h1>
-          <p className="text-slate-500">
-            Acesso completo às especificações técnicas e arquivos das cotações
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-end gap-2">
+        <Button
+          variant={viewMode === 'day' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('day')}
+          className="h-8 shadow-sm"
+        >
+          Visão Diária
+        </Button>
+        <Button
+          variant={viewMode === 'week' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('week')}
+          className="h-8 shadow-sm"
+        >
+          Visão Semanal
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ProjectList
-          quotes={quotes}
-          loading={loading}
-          selectedQuote={selectedQuote}
-          onSelectQuote={setSelectedQuote}
-        />
+      <div className="relative w-full border-2 border-slate-300 rounded-lg overflow-x-auto bg-white shadow-sm">
+        <div className="min-w-[1000px]">
+          <div className="flex border-b-2 border-slate-300 bg-slate-100">
+            <div className="w-28 shrink-0 p-3 border-r-2 border-slate-300 font-bold text-[10px] text-slate-800 flex items-center uppercase tracking-wider">
+              Pedido
+            </div>
+            <div className="w-40 shrink-0 p-3 border-r-2 border-slate-300 font-bold text-[10px] text-slate-800 flex items-center uppercase tracking-wider">
+              Cliente
+            </div>
+            <div className="w-32 shrink-0 p-3 border-r-2 border-slate-300 font-bold text-[10px] text-slate-800 flex items-center uppercase tracking-wider">
+              Status / Eng
+            </div>
+            <div className="flex-1 flex relative">
+              {labels.map((label, i) => (
+                <div
+                  key={i}
+                  className="flex-1 border-r border-slate-300 last:border-r-0 text-center text-xs py-2 text-slate-700 font-semibold capitalize"
+                >
+                  {label}
+                </div>
+              ))}
+              {now.getTime() >= windowStart.getTime() && now.getTime() <= windowEnd.getTime() && (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 flex flex-col items-center"
+                  style={{ left: `${((now.getTime() - windowStart.getTime()) / totalMs) * 100}%` }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-red-500 -mt-1.5 shadow-sm" />
+                </div>
+              )}
+            </div>
+          </div>
 
-        <Card className="md:col-span-2 h-[calc(100vh-200px)] flex flex-col overflow-hidden">
-          {selectedQuote ? (
-            <ScrollArea className="flex-1 h-full bg-slate-50/50">
-              <div className="p-6 md:p-8 space-y-8">
-                <ProjectHeader quote={selectedQuote} />
-                <EquipmentList
-                  equipments={
-                    selectedQuote.data?.equipments ||
-                    selectedQuote.data?.items ||
-                    (selectedQuote.data?.equipment ? [selectedQuote.data.equipment] : [])
-                  }
-                />
-                <AttachmentList
-                  files={
-                    selectedQuote.data?.files ||
-                    selectedQuote.data?.attachments ||
-                    selectedQuote.data?.anexos ||
-                    []
-                  }
-                />
+          {tasks.map((task) => {
+            const style = getTaskStyle(task)
+
+            return (
+              <div
+                key={task.id}
+                className="flex border-b border-slate-200 last:border-b-0 bg-white hover:bg-slate-50 transition-colors h-14"
+              >
+                <div className="w-28 shrink-0 p-2 border-r-2 border-slate-300 text-xs font-bold text-brand-blue flex items-center bg-slate-50/50">
+                  {task.quotes?.order_number || 'Sem número'}
+                </div>
+                <div
+                  className="w-40 shrink-0 p-2 border-r-2 border-slate-300 text-xs flex items-center truncate text-slate-700 font-medium bg-slate-50/50"
+                  title={formatCompanyName(task)}
+                >
+                  {formatCompanyName(task)}
+                </div>
+                <div className="w-32 shrink-0 p-2 border-r-2 border-slate-300 text-[10px] flex flex-col justify-center gap-0.5 bg-slate-50/50">
+                  <span className="font-semibold uppercase text-slate-500 truncate">
+                    {task.status.replace('_', ' ')}
+                  </span>
+                  <span className="text-slate-400 truncate flex items-center gap-1">
+                    <UserPlus className="w-3 h-3" />
+                    {task.assigned_to ? 'Atribuído' : 'Ñ Atribuído'}
+                  </span>
+                </div>
+                <div className="flex-1 relative py-1 px-1">
+                  <div className="absolute inset-0 flex pointer-events-none">
+                    {Array.from({ length: columns }).map((_, i) => (
+                      <div key={i} className="flex-1 border-r border-slate-200 last:border-r-0" />
+                    ))}
+                  </div>
+
+                  {style && (
+                    <div className="relative w-full h-full z-10">
+                      <div
+                        className={cn(
+                          'absolute h-full rounded border-2 flex flex-col justify-center px-2 text-[10px] shadow-sm overflow-hidden whitespace-nowrap transition-all hover:ring-2 hover:ring-brand-blue hover:z-30 cursor-pointer',
+                          style.isDelayed
+                            ? 'bg-red-50 border-red-400 text-red-900'
+                            : 'bg-blue-50 border-blue-400 text-blue-900',
+                        )}
+                        style={{ left: style.left, width: style.width }}
+                        title={`Pedido: ${task.quotes?.order_number}\nInício: ${format(style.start, 'dd/MM HH:mm')}\nFim: ${format(style.end, 'dd/MM HH:mm')}`}
+                      >
+                        <span className="truncate w-full font-medium text-[10px] text-center">
+                          {format(style.start, 'HH:mm')} - {format(style.end, 'HH:mm')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </ScrollArea>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 bg-slate-50/50">
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-6">
-                <HardHat className="w-12 h-12 text-blue-200" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-700 mb-2">Selecione um projeto</h3>
-              <p className="text-slate-500 text-center max-w-sm">
-                Clique em uma cotação na lista lateral para visualizar todas as especificações
-                técnicas e arquivos anexados.
-              </p>
+            )
+          })}
+          {tasks.length === 0 && (
+            <div className="text-center py-12 text-sm text-slate-500 bg-white font-medium">
+              Nenhuma tarefa ativa para exibir no gráfico neste período.
             </div>
           )}
-        </Card>
+        </div>
       </div>
+    </div>
+  )
+}
+
+export default function EngineeringDashboard() {
+  const [tasks, setTasks] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const [filter, setFilter] = useState<'all' | 'mine'>('all')
+  const [aiDrafts, setAiDrafts] = useState<
+    Record<string, { justification: string; comments: string }>
+  >({})
+  const [isGeneratingAi, setIsGeneratingAi] = useState<string | null>(null)
+  const { toast } = useToast()
+  const { user } = useAuth()
+
+  const fetchTasks = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('quote_engineering_status')
+      .select('*, quotes(*)')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      toast({ title: 'Erro', description: 'Erro ao carregar orçamentos.', variant: 'destructive' })
+    } else {
+      setTasks(data || [])
+      const initialNotes: Record<string, string> = {}
+      const initialDrafts: Record<string, { justification: string; comments: string }> = {}
+      data?.forEach((task) => {
+        initialNotes[task.id] = task.engineer_notes || ''
+        initialDrafts[task.id] = {
+          justification: task.quotes?.data?.aiJustification || '',
+          comments: task.quotes?.data?.aiComments || '',
+        }
+      })
+      setNotes(initialNotes)
+      setAiDrafts(initialDrafts)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchTasks()
+  }, [])
+
+  const updateStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase
+      .from('quote_engineering_status')
+      .update({ status: newStatus })
+      .eq('id', id)
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status',
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Sucesso', description: `Status atualizado para ${newStatus}` })
+      fetchTasks()
+    }
+  }
+
+  const assignToMe = async (id: string) => {
+    if (!user) return
+    const { error } = await supabase
+      .from('quote_engineering_status')
+      .update({ assigned_to: user.id })
+      .eq('id', id)
+
+    if (!error) {
+      toast({ title: 'Sucesso', description: 'Tarefa atribuída a você.' })
+      fetchTasks()
+    }
+  }
+
+  const setDeadlineHours = async (id: string, hoursToAdd: number) => {
+    const deadline = new Date()
+    deadline.setHours(deadline.getHours() + hoursToAdd)
+    const { error } = await supabase
+      .from('quote_engineering_status')
+      .update({ deadline: deadline.toISOString() })
+      .eq('id', id)
+
+    if (!error) {
+      toast({ title: 'Sucesso', description: `Prazo atualizado (+${hoursToAdd}h).` })
+      fetchTasks()
+    }
+  }
+
+  const updateCustomDeadline = async (id: string, dateStr: string) => {
+    const { error } = await supabase
+      .from('quote_engineering_status')
+      .update({ deadline: dateStr })
+      .eq('id', id)
+
+    if (!error) {
+      toast({ title: 'Sucesso', description: 'Prazo atualizado com sucesso.' })
+      fetchTasks()
+    }
+  }
+
+  const updateCustomStartDate = async (id: string, dateStr: string) => {
+    const { error } = await supabase
+      .from('quote_engineering_status')
+      .update({ start_date: dateStr })
+      .eq('id', id)
+
+    if (!error) {
+      toast({ title: 'Sucesso', description: 'Data de início atualizada com sucesso.' })
+      fetchTasks()
+    }
+  }
+
+  const formatForInput = (isoString?: string | null) => {
+    if (!isoString) return ''
+    const d = new Date(isoString)
+    const offset = d.getTimezoneOffset() * 60000
+    return new Date(d.getTime() - offset).toISOString().slice(0, 16)
+  }
+
+  const handleDateChange = (id: string, value: string) => {
+    if (!value) return
+    const d = new Date(value)
+    updateCustomDeadline(id, d.toISOString())
+  }
+
+  const handleStartDateChange = (id: string, value: string) => {
+    if (!value) return
+    const d = new Date(value)
+    updateCustomStartDate(id, d.toISOString())
+  }
+
+  const saveNotes = async (id: string) => {
+    const { error } = await supabase
+      .from('quote_engineering_status')
+      .update({ engineer_notes: notes[id] })
+      .eq('id', id)
+
+    if (error) {
+      toast({ title: 'Erro', description: 'Erro ao salvar notas.', variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Notas da engenharia atualizadas.' })
+      if (user) {
+        await supabase.from('engineering_feedback').insert({
+          quote_id: tasks.find((t) => t.id === id)?.quote_id,
+          engineer_id: user.id,
+          feedback_type: 'note_update',
+          message: notes[id],
+        })
+      }
+      fetchTasks()
+    }
+  }
+
+  const handleGenerateAiText = async (task: any) => {
+    setIsGeneratingAi(task.id)
+    try {
+      const equipment = task.quotes?.data?.equipments?.[0] || {}
+      const { data: res, error } = await supabase.functions.invoke('adapta-ai', {
+        body: {
+          action: 'generate_justification',
+          equipment,
+        },
+      })
+      if (error) throw error
+      if (res?.justification) {
+        setAiDrafts((prev) => ({
+          ...prev,
+          [task.id]: {
+            ...prev[task.id],
+            justification: res.justification,
+            comments:
+              'Análise técnica finalizada. Verificado conflitos estruturais e dimensionamento.',
+          },
+        }))
+        toast({ title: 'Sucesso', description: 'Textos gerados pela IA com sucesso.' })
+      }
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao gerar textos com IA.', variant: 'destructive' })
+    } finally {
+      setIsGeneratingAi(null)
+    }
+  }
+
+  const handleIncorporateToBudget = async (task: any) => {
+    const draft = aiDrafts[task.id]
+    if (!draft) return
+
+    const currentData = task.quotes?.data || {}
+    const updatedData = {
+      ...currentData,
+      aiJustification: draft.justification,
+      aiComments: draft.comments,
+    }
+
+    const { error } = await supabase
+      .from('quotes')
+      .update({ data: updatedData })
+      .eq('id', task.quote_id)
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao incorporar ao orçamento.',
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Sucesso', description: 'Textos validados e incorporados ao orçamento!' })
+      fetchTasks()
+    }
+  }
+
+  const isManager = user?.email === 'dante@dlean.com.br' || user?.email === 'admin@example.com'
+
+  const activeTasks = useMemo(() => {
+    return tasks.filter((t) => t.status !== 'aprovado')
+  }, [tasks])
+
+  const filteredTasks = useMemo(() => {
+    let list = tasks
+    if (filter === 'mine' && user) {
+      list = list.filter((t) => t.assigned_to === user.id)
+    }
+    return list
+  }, [tasks, filter, user])
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up pb-12">
+      <div className="border-b-4 border-brand-orange pb-4">
+        <h2 className="text-3xl font-bold text-brand-blue">Dashboard de Engenharia</h2>
+        <p className="text-muted-foreground mt-1">D-Lean Solutions App</p>
+      </div>
+
+      <Tabs defaultValue="queue" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="queue">Fila de Tarefas</TabsTrigger>
+          {isManager && <TabsTrigger value="workload">Gestão de Carga</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="queue" className="space-y-4">
+          <div className="flex gap-2 mb-4 bg-slate-50 p-1.5 rounded-lg border inline-flex shadow-sm">
+            <Button
+              variant={filter === 'all' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setFilter('all')}
+              className={cn(
+                'h-8 px-4',
+                filter === 'all'
+                  ? 'bg-white text-brand-blue shadow-sm border'
+                  : 'text-slate-500 hover:text-slate-800',
+              )}
+            >
+              Todos os Orçamentos
+            </Button>
+            <Button
+              variant={filter === 'mine' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setFilter('mine')}
+              className={cn(
+                'h-8 px-4',
+                filter === 'mine'
+                  ? 'bg-white text-brand-blue shadow-sm border'
+                  : 'text-slate-500 hover:text-slate-800',
+              )}
+            >
+              Meus Orçamentos
+            </Button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredTasks.map((task) => {
+              const timeInQueue = formatDistanceToNow(new Date(task.created_at), {
+                locale: ptBR,
+                addSuffix: false,
+              })
+              const isOverdue =
+                task.deadline && new Date(task.deadline) < new Date() && task.status !== 'aprovado'
+
+              return (
+                <Card
+                  key={task.id}
+                  className={cn(
+                    'flex flex-col relative transition-all duration-300 border-t-4',
+                    isOverdue
+                      ? 'border-t-red-500 shadow-[0_0_15px_rgba(239,68,68,0.15)] ring-1 ring-red-500/20'
+                      : 'border-t-brand-blue shadow-md hover:shadow-lg',
+                  )}
+                >
+                  {isOverdue && (
+                    <div className="absolute inset-0 border-[3px] border-red-500/80 rounded-xl animate-pulse pointer-events-none opacity-60" />
+                  )}
+
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'font-mono font-bold',
+                          task.status === 'aprovado'
+                            ? 'text-green-600 border-green-200 bg-green-50'
+                            : task.status === 'revisao_solicitada'
+                              ? 'text-amber-600 border-amber-200 bg-amber-50'
+                              : 'text-brand-blue border-blue-200 bg-blue-50',
+                        )}
+                      >
+                        {task.quotes?.order_number || 'Sem número'}
+                      </Badge>
+                      <span className="text-[10px] font-semibold text-slate-500 flex items-center bg-slate-100 px-1.5 py-0.5 rounded">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {timeInQueue}
+                      </span>
+                    </div>
+                    <CardTitle className="text-lg flex items-center justify-between gap-2">
+                      <span className="truncate" title={task.quotes?.client_name}>
+                        {formatCompanyName(task)}
+                      </span>
+                      {isOverdue && (
+                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0 animate-pulse" />
+                      )}
+                    </CardTitle>
+                    <CardDescription className="flex justify-between items-center mt-1">
+                      <span className="text-xs font-medium">
+                        Prioridade:{' '}
+                        {task.priority === 'alta' ? (
+                          <span className="text-red-500 font-bold">Alta</span>
+                        ) : (
+                          'Normal'
+                        )}
+                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        {task.start_date && (
+                          <span className="text-[10px] px-2 py-0.5 rounded border font-semibold bg-slate-50 text-slate-600 border-slate-200">
+                            Início: {format(new Date(task.start_date), 'dd/MM HH:mm')}
+                          </span>
+                        )}
+                        {task.deadline ? (
+                          <span
+                            className={cn(
+                              'text-[10px] px-2 py-0.5 rounded border font-semibold',
+                              isOverdue
+                                ? 'bg-red-100 text-red-700 border-red-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200',
+                            )}
+                          >
+                            Fim: {format(new Date(task.deadline), 'dd/MM HH:mm')}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded border text-slate-500 italic">
+                            Sem SLA
+                          </span>
+                        )}
+                      </div>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col gap-4">
+                    <div className="text-sm space-y-3 bg-slate-50/50 p-3 rounded-md border flex-1">
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <p className="text-xs">
+                          <strong className="text-slate-600">Status:</strong>{' '}
+                          <span className="capitalize font-medium">
+                            {task.status.replace('_', ' ')}
+                          </span>
+                        </p>
+                        {!task.assigned_to ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] font-semibold text-brand-blue px-2 bg-blue-50 hover:bg-blue-100 border border-blue-100"
+                            onClick={() => assignToMe(task.id)}
+                          >
+                            <UserPlus className="w-3 h-3 mr-1" /> Assumir
+                          </Button>
+                        ) : (
+                          <span className="text-[10px] font-semibold bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded border border-brand-blue/20">
+                            Atribuído
+                          </span>
+                        )}
+                      </div>
+
+                      {task.status !== 'aprovado' && (
+                        <div className="pt-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span>Período de Execução</span>
+                          </label>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-medium text-slate-500 w-8">
+                                Início:
+                              </span>
+                              <input
+                                type="datetime-local"
+                                className="text-[11px] font-medium flex-1 h-7 px-2 border border-slate-200 rounded bg-white text-slate-700 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                                value={formatForInput(task.start_date)}
+                                onChange={(e) => handleStartDateChange(task.id, e.target.value)}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-medium text-slate-500 w-8">
+                                Fim:
+                              </span>
+                              <input
+                                type="datetime-local"
+                                className="text-[11px] font-medium flex-1 h-7 px-2 border border-slate-200 rounded bg-white text-slate-700 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                                value={formatForInput(task.deadline)}
+                                onChange={(e) => handleDateChange(task.id, e.target.value)}
+                              />
+                            </div>
+                            <div className="flex gap-1 mt-1">
+                              {[2, 4, 8, 24].map((hours) => (
+                                <Button
+                                  key={hours}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 text-[10px] px-1 flex-1 font-semibold hover:bg-brand-blue hover:text-white transition-colors border-slate-200"
+                                  onClick={() => setDeadlineHours(task.id, hours)}
+                                >
+                                  +{hours}h (Fim)
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {task.sales_notes && (
+                        <div className="pt-2 animate-fade-in">
+                          <label className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            <MessageSquare className="w-3 h-3" />
+                            Resposta do Vendedor
+                          </label>
+                          <div className="text-xs bg-amber-50 p-2 rounded-md border border-amber-200 text-amber-900 whitespace-pre-wrap font-medium">
+                            {task.sales_notes}
+                          </div>
+                        </div>
+                      )}
+
+                      {(task.quotes?.data?.equipments?.length > 0 ||
+                        task.quotes?.data?.files?.length > 0) && (
+                        <div className="pt-2 animate-fade-in">
+                          <Accordion type="multiple" className="w-full space-y-2">
+                            {task.quotes?.data?.equipments?.length > 0 && (
+                              <AccordionItem
+                                value="equipments"
+                                className="border-b-0 border border-slate-200 bg-white rounded-md px-3 shadow-sm"
+                              >
+                                <AccordionTrigger className="py-2.5 text-[11px] font-bold text-slate-700 hover:text-brand-blue uppercase tracking-wider hover:no-underline">
+                                  <div className="flex items-center gap-2">
+                                    <Package className="w-3.5 h-3.5" />
+                                    Especificações Técnicas ({task.quotes.data.equipments.length})
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-3 pt-1">
+                                  <div className="space-y-3">
+                                    {task.quotes.data.equipments.map((eq: any, idx: number) => (
+                                      <div
+                                        key={idx}
+                                        className="bg-slate-50 p-2.5 rounded border border-slate-100"
+                                      >
+                                        <h4 className="font-semibold text-[11px] text-brand-blue mb-2 capitalize border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
+                                          <div className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
+                                          {eq.type.replace(/_/g, ' ')}
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                                          {Object.entries(eq.data || {}).map(([key, value]) => {
+                                            if (typeof value === 'object') return null
+                                            if (
+                                              value === null ||
+                                              value === undefined ||
+                                              value === ''
+                                            )
+                                              return null
+                                            return (
+                                              <div
+                                                key={key}
+                                                className="text-[10px] flex flex-col gap-0.5"
+                                              >
+                                                <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
+                                                  {formatConfigKey(key)}
+                                                </span>
+                                                <span
+                                                  className="text-slate-700 font-medium truncate"
+                                                  title={String(value)}
+                                                >
+                                                  {String(value)}
+                                                </span>
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            )}
+
+                            {task.quotes?.data?.files?.length > 0 && (
+                              <AccordionItem
+                                value="files"
+                                className="border-b-0 border border-slate-200 bg-white rounded-md px-3 shadow-sm"
+                              >
+                                <AccordionTrigger className="py-2.5 text-[11px] font-bold text-slate-700 hover:text-brand-blue uppercase tracking-wider hover:no-underline">
+                                  <div className="flex items-center gap-2">
+                                    <Paperclip className="w-3.5 h-3.5" />
+                                    Anexos ({task.quotes.data.files.length})
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-3 pt-1">
+                                  <ul className="space-y-1.5">
+                                    {task.quotes.data.files.map((file: any, idx: number) => {
+                                      const fileName =
+                                        typeof file === 'string'
+                                          ? file.split('/').pop()
+                                          : file.name || `Anexo ${idx + 1}`
+                                      return (
+                                        <li
+                                          key={idx}
+                                          className="flex items-center justify-between gap-2 text-[10px] bg-slate-50 p-2 rounded border border-slate-100 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer group"
+                                        >
+                                          <div className="flex items-center gap-2 overflow-hidden">
+                                            <FileText className="w-3 h-3 text-slate-400 group-hover:text-brand-blue transition-colors shrink-0" />
+                                            <span
+                                              className="text-slate-600 font-medium truncate group-hover:text-slate-900 transition-colors"
+                                              title={fileName}
+                                            >
+                                              {fileName}
+                                            </span>
+                                          </div>
+                                          <span className="text-[9px] font-semibold text-brand-blue opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                            Abrir
+                                          </span>
+                                        </li>
+                                      )
+                                    })}
+                                  </ul>
+                                </AccordionContent>
+                              </AccordionItem>
+                            )}
+                          </Accordion>
+                        </div>
+                      )}
+
+                      <div className="pt-3 mt-2 border-t border-slate-200/50">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
+                          Notas da Engenharia Interna
+                        </label>
+                        <Textarea
+                          placeholder="Adicione observações técnicas..."
+                          className="text-xs min-h-[60px] resize-none focus-visible:ring-1 focus-visible:ring-brand-blue bg-white"
+                          value={notes[task.id] || ''}
+                          onChange={(e) => setNotes({ ...notes, [task.id]: e.target.value })}
+                        />
+                        <div className="flex justify-end mt-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="h-6 text-[10px] px-3 bg-slate-800 hover:bg-slate-700 font-semibold shadow-sm"
+                            onClick={() => saveNotes(task.id)}
+                            disabled={notes[task.id] === task.engineer_notes}
+                          >
+                            <Save className="w-3 h-3 mr-1" /> Salvar Notas
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-200 mt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-[10px] font-bold text-brand-blue uppercase tracking-wider flex items-center gap-1">
+                            <Wand2 className="w-3 h-3" /> Assistente de IA (Proposta)
+                          </label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-[10px] px-2 text-brand-blue border-brand-blue/30 hover:bg-brand-blue/10"
+                            onClick={() => handleGenerateAiText(task)}
+                            disabled={isGeneratingAi === task.id}
+                          >
+                            {isGeneratingAi === task.id ? (
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            ) : (
+                              <Wand2 className="w-3 h-3 mr-1" />
+                            )}
+                            Gerar Textos
+                          </Button>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-bold mb-1 block">
+                              Justificativa Técnica
+                            </span>
+                            <Textarea
+                              className="text-xs min-h-[60px] bg-blue-50/30 border-blue-100"
+                              placeholder="Gere com a IA ou digite a justificativa técnica..."
+                              value={aiDrafts[task.id]?.justification || ''}
+                              onChange={(e) =>
+                                setAiDrafts((prev) => ({
+                                  ...prev,
+                                  [task.id]: { ...prev[task.id], justification: e.target.value },
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-bold mb-1 block">
+                              Comentários da IA
+                            </span>
+                            <Textarea
+                              className="text-xs min-h-[40px] bg-blue-50/30 border-blue-100"
+                              placeholder="Observações adicionais geradas pela IA..."
+                              value={aiDrafts[task.id]?.comments || ''}
+                              onChange={(e) =>
+                                setAiDrafts((prev) => ({
+                                  ...prev,
+                                  [task.id]: { ...prev[task.id], comments: e.target.value },
+                                }))
+                              }
+                            />
+                          </div>
+
+                          <Button
+                            size="sm"
+                            className="w-full h-7 text-[10px] bg-brand-blue hover:bg-brand-blue/90"
+                            onClick={() => handleIncorporateToBudget(task)}
+                            disabled={
+                              !aiDrafts[task.id]?.justification && !aiDrafts[task.id]?.comments
+                            }
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" /> Validar e Incorporar ao
+                            Orçamento
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200 font-bold bg-white shadow-sm"
+                        onClick={() => updateStatus(task.id, 'revisao_solicitada')}
+                        disabled={task.status === 'revisao_solicitada'}
+                      >
+                        <AlertTriangle className="w-4 h-4 mr-1 hidden sm:inline-block" />
+                        Revisão
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold shadow-sm"
+                        onClick={() => updateStatus(task.id, 'aprovado')}
+                        disabled={task.status === 'aprovado'}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1 hidden sm:inline-block" />
+                        Aprovar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+            {filteredTasks.length === 0 && (
+              <div className="col-span-full text-center py-12 text-muted-foreground border rounded-xl bg-slate-50/50 shadow-inner">
+                <Clock className="mx-auto h-12 w-12 text-slate-300 mb-3 opacity-50" />
+                <p className="font-medium">Nenhuma tarefa encontrada.</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {isManager && (
+          <TabsContent value="workload" className="animate-fade-in-up">
+            <Card className="border-t-4 border-t-brand-orange shadow-md">
+              <CardHeader className="bg-slate-50/50 border-b pb-4">
+                <CardTitle className="text-xl">Carga de Trabalho Ativa</CardTitle>
+                <CardDescription>
+                  Gráfico de Gantt simplificado mostrando prazos e gargalos nas próximas 24 horas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <GanttChart tasks={activeTasks} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   )
 }
