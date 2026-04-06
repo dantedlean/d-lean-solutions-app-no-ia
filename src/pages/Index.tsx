@@ -61,7 +61,7 @@ export default function Index() {
       const dim = eq.data?.dimensoes || 'Not specified'
       const cor = eq.data?.corRal || eq.data?.corTubo || 'Standard'
       const tampo = eq.data?.materialTampo || eq.data?.tampo || ''
-      
+
       // Mapeamento para tradução técnica (DNA D-Lean)
       let typeEn = type
       if (type.toLowerCase().includes('bancada')) typeEn = 'Industrial Workbench'
@@ -270,7 +270,7 @@ export default function Index() {
         <p className="text-muted-foreground mt-1">&nbsp;Acelerando a proposta</p>
       </div>
 
-      {isReviewing && (aiJustification || aiComments ) && (
+      {isReviewing && (aiJustification || aiComments) && (
         <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl space-y-4 animate-fade-in shadow-sm">
           <h3 className="text-lg font-bold text-brand-blue flex items-center gap-2">
             <Wand2 className="w-5 h-5" /> Retorno da Engenharia (IA)
