@@ -22,7 +22,7 @@ export function AttachmentList({ files }: { files: any[] }) {
     <div>
       <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
         <Paperclip className="w-6 h-6 mr-2 text-blue-600" />
-        Arquivos e Anexos
+        Attachments
       </h3>
 
       {files?.length > 0 ? (

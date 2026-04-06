@@ -22,7 +22,7 @@ export function EquipmentList({ equipments }: { equipments: any[] }) {
     <div>
       <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
         <Package className="w-6 h-6 mr-2 text-blue-600" />
-        Configuração dos Produtos
+        Technical Specifications
       </h3>
 
       {equipments?.length > 0 ? (

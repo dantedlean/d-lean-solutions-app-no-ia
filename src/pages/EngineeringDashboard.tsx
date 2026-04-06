@@ -20,12 +20,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { formatDistanceToNow, format } from 'date-fns'
 import { Wand2, Package, Paperclip, FileText } from 'lucide-react'
 import { ptBR } from 'date-fns/locale'
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from '@/components/ui/accordion'
+import { EquipmentList } from '@/components/engineering/EquipmentList'
+import { AttachmentList } from '@/components/engineering/AttachmentList'
 
 const MOCK_TASKS = [
   {
@@ -49,21 +45,22 @@ const MOCK_TASKS = [
             data: {
               width: '800mm',
               height: '900mm',
-              depth: '5000mm (Comprimento)',
+              length: '5000mm',
               material: 'Aço Carbono Galvanizado',
               description:
                 'Esteira para transporte de caixas pesadas no setor de expedição com guias laterais.',
+              construction_method: 'Estrutura parafusada com roletes em aço zincado',
             },
           },
         ],
         files: [
-          { name: 'projeto_tecnico.pdf', size: 2500000, type: 'application/pdf' },
-          { name: 'foto_local.jpg', size: 1200000, type: 'image/jpeg' },
+          { name: 'Drawing_01.pdf', size: 2500000, type: 'application/pdf' },
           {
-            name: 'especificacoes.docx',
+            name: 'Specs_V2.docx',
             size: 850000,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           },
+          { name: 'Site_Photo.jpg', size: 1200000, type: 'image/jpeg' },
         ],
         aiJustification: '',
         aiComments: '',
@@ -91,17 +88,18 @@ const MOCK_TASKS = [
             data: {
               width: '1500mm',
               height: '850-1050mm (Ajustável)',
-              depth: '750mm',
+              length: '750mm',
               material: 'Perfil de Alumínio Estrutural',
               description:
                 'Bancada para montagem de componentes eletrônicos finos com sistema antistático.',
+              construction_method: 'Montagem modular com conectores rápidos',
             },
           },
         ],
         files: [
-          { name: 'layout_fabrica.pdf', size: 4500000, type: 'application/pdf' },
-          { name: 'requisitos_ergonomia.pdf', size: 1100000, type: 'application/pdf' },
-          { name: 'normas_seguranca.pdf', size: 500000, type: 'application/pdf' },
+          { name: 'Drawing_01.pdf', size: 4500000, type: 'application/pdf' },
+          { name: 'Specs_V2.docx', size: 1100000, type: 'application/pdf' },
+          { name: 'Site_Photo.jpg', size: 500000, type: 'application/jpeg' },
         ],
         aiJustification: '',
         aiComments: '',
@@ -637,107 +635,18 @@ export default function EngineeringDashboard() {
 
                       {(task.quotes?.data?.equipments?.length > 0 ||
                         task.quotes?.data?.files?.length > 0) && (
-                        <div className="pt-2 animate-fade-in">
-                          <Accordion type="multiple" className="w-full space-y-2">
-                            {task.quotes?.data?.equipments?.length > 0 && (
-                              <AccordionItem
-                                value="equipments"
-                                className="border-b-0 border border-slate-200 bg-white rounded-md px-3 shadow-sm"
-                              >
-                                <AccordionTrigger className="py-2.5 text-[11px] font-bold text-slate-700 hover:text-brand-blue uppercase tracking-wider hover:no-underline">
-                                  <div className="flex items-center gap-2">
-                                    <Package className="w-3.5 h-3.5" />
-                                    Detalhes do Equipamento ({task.quotes.data.equipments.length})
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pb-3 pt-1">
-                                  <div className="space-y-3">
-                                    {task.quotes.data.equipments.map((eq: any, idx: number) => (
-                                      <div
-                                        key={idx}
-                                        className="bg-slate-50 p-2.5 rounded border border-slate-100"
-                                      >
-                                        <h4 className="font-semibold text-[11px] text-brand-blue mb-2 capitalize border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
-                                          <div className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
-                                          {eq.name || eq.type.replace(/_/g, ' ')}
-                                        </h4>
-                                        <div className="grid grid-cols-1 gap-y-2">
-                                          <div className="flex flex-col gap-0.5">
-                                            <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
-                                              Dimensões (A x L x P)
-                                            </span>
-                                            <span className="text-[10px] font-medium text-slate-700">
-                                              {eq.data.height || 'N/A'} x {eq.data.width || 'N/A'} x{' '}
-                                              {eq.data.depth || 'N/A'}
-                                            </span>
-                                          </div>
-                                          <div className="flex flex-col gap-0.5">
-                                            <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
-                                              Material
-                                            </span>
-                                            <span className="text-[10px] font-medium text-slate-700">
-                                              {eq.data.material || 'N/A'}
-                                            </span>
-                                          </div>
-                                          <div className="flex flex-col gap-0.5">
-                                            <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
-                                              Especificações Técnicas
-                                            </span>
-                                            <span className="text-[10px] font-medium text-slate-700 whitespace-pre-wrap">
-                                              {eq.data.description || 'N/A'}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            )}
+                        <div className="pt-2 animate-fade-in space-y-4">
+                          {task.quotes?.data?.equipments?.length > 0 && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                              <EquipmentList equipments={task.quotes.data.equipments} />
+                            </div>
+                          )}
 
-                            {task.quotes?.data?.files?.length > 0 && (
-                              <AccordionItem
-                                value="files"
-                                className="border-b-0 border border-slate-200 bg-white rounded-md px-3 shadow-sm"
-                              >
-                                <AccordionTrigger className="py-2.5 text-[11px] font-bold text-slate-700 hover:text-brand-blue uppercase tracking-wider hover:no-underline">
-                                  <div className="flex items-center gap-2">
-                                    <Paperclip className="w-3.5 h-3.5" />
-                                    Anexos ({task.quotes.data.files.length})
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="pb-3 pt-1">
-                                  <ul className="space-y-1.5">
-                                    {task.quotes.data.files.map((file: any, idx: number) => {
-                                      const fileName =
-                                        typeof file === 'string'
-                                          ? file.split('/').pop()
-                                          : file.name || `Anexo ${idx + 1}`
-                                      return (
-                                        <li
-                                          key={idx}
-                                          className="flex items-center justify-between gap-2 text-[10px] bg-slate-50 p-2 rounded border border-slate-100 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer group"
-                                        >
-                                          <div className="flex items-center gap-2 overflow-hidden">
-                                            <FileText className="w-3 h-3 text-slate-400 group-hover:text-brand-blue transition-colors shrink-0" />
-                                            <span
-                                              className="text-slate-600 font-medium truncate group-hover:text-slate-900 transition-colors"
-                                              title={fileName}
-                                            >
-                                              {fileName}
-                                            </span>
-                                          </div>
-                                          <span className="text-[9px] font-semibold text-brand-blue opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                            Abrir
-                                          </span>
-                                        </li>
-                                      )
-                                    })}
-                                  </ul>
-                                </AccordionContent>
-                              </AccordionItem>
-                            )}
-                          </Accordion>
+                          {task.quotes?.data?.files?.length > 0 && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                              <AttachmentList files={task.quotes.data.files} />
+                            </div>
+                          )}
                         </div>
                       )}
 

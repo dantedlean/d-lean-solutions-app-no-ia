@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Save, Wand2, CheckCircle2, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBudgetStore } from '@/stores/useBudgetStore'
-import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 
 export default function Index() {
@@ -52,62 +51,24 @@ export default function Index() {
   }, [])
 
   const handleConsolidate = async () => {
-    if (!user) {
-      toast({ title: 'Erro', description: 'Usuário não autenticado.', variant: 'destructive' })
-      return
-    }
-
     setIsSubmitting(true)
     try {
-      const { data: quote, error: quoteError } = await supabase
-        .from('quotes')
-        .insert({
-          user_id: user.id,
-          order_number: orderNumber,
-          client_cnpj: client.cnpj,
-          client_name: client.razaoSocial || 'Cliente Novo',
-          status: 'engenharia',
-          data: {
-            equipments,
-            client,
-            aiJustification,
-            aiComments,
-            files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
-          },
-        })
-        .select()
-        .single()
+      // Mock the save operation since database is disconnected
+      await new Promise((resolve) => setTimeout(resolve, 800))
 
-      if (quoteError) throw quoteError
-
-      const { data: funcData, error: funcError } = await supabase.functions.invoke(
-        'dlean-integra',
-        {
-          body: {
-            action: 'create_task',
-            payload: {
-              orderNumber,
-              clientName: client.razaoSocial || 'Cliente Novo',
-              quoteId: quote.id,
-            },
-          },
-        },
-      )
-
-      if (funcError) throw funcError
-
-      setQuoteId(quote.id)
+      const mockQuoteId = `mock-quote-${Date.now()}`
+      setQuoteId(mockQuoteId)
       setQuoteStatus('engenharia')
       setEngineeringDeadline(null)
 
       toast({
         title: 'Orçamento Finalizado e Enviado!',
-        description: 'Enviado para Fila de Engenharia Interna.',
+        description: 'Enviado para Fila de Engenharia Interna (Modo Offline).',
       })
     } catch (e: any) {
       toast({
         title: 'Erro ao finalizar',
-        description: e.message || 'Falha na integração',
+        description: 'Falha na operação mock',
         variant: 'destructive',
       })
     } finally {
@@ -116,46 +77,24 @@ export default function Index() {
   }
 
   const handleUpdate = async () => {
-    if (!user || !quoteId) return
+    if (!quoteId) return
 
     setIsSubmitting(true)
     try {
-      const { error: quoteError } = await supabase
-        .from('quotes')
-        .update({
-          client_cnpj: client.cnpj,
-          client_name: client.razaoSocial || 'Cliente Novo',
-          data: {
-            equipments,
-            client,
-            aiJustification,
-            aiComments,
-            files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
-          },
-        })
-        .eq('id', quoteId)
-
-      if (quoteError) throw quoteError
-
-      await supabase.from('quote_status_history').insert({
-        quote_id: quoteId,
-        new_status: quoteStatus,
-        previous_status: quoteStatus,
-        changed_by: user.id,
-        reason: 'Revisão do orçamento item a item',
-      })
+      // Mock the update operation since database is disconnected
+      await new Promise((resolve) => setTimeout(resolve, 800))
 
       setIsReviewing(false)
 
       toast({
         title: 'Orçamento Atualizado!',
-        description: 'As revisões foram salvas com sucesso.',
+        description: 'As revisões foram salvas com sucesso (Modo Offline).',
       })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e: any) {
       toast({
         title: 'Erro ao atualizar',
-        description: e.message || 'Falha ao atualizar o orçamento.',
+        description: 'Falha ao atualizar o orçamento (Modo Offline).',
         variant: 'destructive',
       })
     } finally {
