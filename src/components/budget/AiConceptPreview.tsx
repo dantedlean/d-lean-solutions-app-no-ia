@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect } from 'react'
 import { Wand2, Loader2, Info } from 'lucide-react'
 
 export function AiConceptPreview({
@@ -12,6 +13,53 @@ export function AiConceptPreview({
   aiImageStatus,
   setAiImageStatus,
 }: any) {
+  useEffect(() => {
+    if (!equipments || equipments.length === 0) return
+
+    const eq = equipments[0]
+    const data = eq.data || {}
+
+    let eqTypeEn = 'Industrial equipment'
+    const typeLower = (eq.type || '').toLowerCase()
+    if (typeLower.includes('bancada')) eqTypeEn = 'Industrial Workbench'
+    else if (typeLower.includes('carrinho')) eqTypeEn = 'Industrial Trolley/Cart'
+    else if (typeLower.includes('flow rack')) eqTypeEn = 'Gravity Flow Rack'
+    else if (eq.type) eqTypeEn = eq.type
+
+    let methodEn = 'steel structure'
+    const methodLower = (eq.method || data.method || '').toLowerCase()
+    if (methodLower === 'soldado') methodEn = 'Heavy-duty welded steel structure'
+    else if (methodLower === 'lean' || methodLower === 'modular')
+      methodEn = 'Lean modular pipe and joint system'
+    else if (methodLower === 'hibrido' || methodLower === 'híbrido')
+      methodEn = 'Hybrid structure: welded steel base with modular pipe upper frame'
+
+    const dimensoes = data.dimensoes_externas || data.dimensoes || eq.dimensoes || 'Standard'
+
+    let materialTopEn = 'Standard'
+    const tampoLower = (data.tampo || '').toLowerCase()
+    if (tampoLower.includes('mdf')) materialTopEn = 'MDF'
+    else if (tampoLower.includes('borracha')) materialTopEn = 'Rubber mat'
+    else if (tampoLower.includes('inox')) materialTopEn = 'Stainless steel'
+    else if (data.tampo) materialTopEn = data.tampo
+
+    const cor = data.corRal || data.corTubo || 'Blue'
+    const carga =
+      data.carga_tampo ||
+      data.cargaTotal ||
+      data.carga ||
+      data.peso ||
+      eq.cargaTotal ||
+      eq.carga ||
+      '100'
+
+    let generatedPrompt = `Studio photo of a SINGLE isolated ${eqTypeEn}, ${methodEn}, dimensions ${dimensoes}mm, ${materialTopEn} top, RAL ${cor} powder coating (Load capacity: ${carga}kg). Professional technical catalog lighting, solid neutral grey background, isometric view, 8k resolution, photorealistic industrial render. NO factory background, NO robots, NO people.`
+
+    generatedPrompt = generatedPrompt.replace(/aluminum/gi, 'steel').replace(/alumínio/gi, 'steel')
+
+    setPrompt(generatedPrompt)
+  }, [JSON.stringify(equipments), setPrompt])
+
   const generateImage = async () => {
     setAiImageStatus('generating')
     try {
