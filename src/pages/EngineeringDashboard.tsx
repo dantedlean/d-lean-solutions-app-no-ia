@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo } from 'react'
-import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,6 @@ import {
   UserPlus,
   Save,
   AlertCircle,
-  Calendar,
   MessageSquare,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -29,26 +27,88 @@ import {
   AccordionContent,
 } from '@/components/ui/accordion'
 
-const formatConfigKey = (key: string) => {
-  const map: Record<string, string> = {
-    width: 'Largura',
-    height: 'Altura',
-    depth: 'Profundidade',
-    length: 'Comprimento',
-    material: 'Material',
-    color: 'Cor RAL',
-    colorDetails: 'Detalhes da Cor',
-    assembly: 'Método de Montagem',
-    accessories: 'Acessórios',
-    levels: 'Níveis',
-    type: 'Tipo',
-    capacity: 'Capacidade',
-    weight: 'Peso',
-    floorType: 'Tipo de Piso',
-    environment: 'Ambiente',
-  }
-  return map[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')
-}
+const MOCK_TASKS = [
+  {
+    id: 'task-1',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+    status: 'analise',
+    priority: 'alta',
+    assigned_to: null,
+    engineer_notes: '',
+    start_date: null,
+    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // +1 day
+    quotes: {
+      order_number: '#ORC-2024-101',
+      client_name: 'Indústrias Acme LTDA',
+      data: {
+        company: { razao_social: 'Indústrias Acme LTDA', municipio: 'São Paulo' },
+        equipments: [
+          {
+            type: 'esteira_transportadora',
+            name: 'Esteira de Roletes Livres',
+            data: {
+              width: '800mm',
+              height: '900mm',
+              depth: '5000mm (Comprimento)',
+              material: 'Aço Carbono Galvanizado',
+              description:
+                'Esteira para transporte de caixas pesadas no setor de expedição com guias laterais.',
+            },
+          },
+        ],
+        files: [
+          { name: 'projeto_tecnico.pdf', size: 2500000, type: 'application/pdf' },
+          { name: 'foto_local.jpg', size: 1200000, type: 'image/jpeg' },
+          {
+            name: 'especificacoes.docx',
+            size: 850000,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+        ],
+        aiJustification: '',
+        aiComments: '',
+      },
+    },
+  },
+  {
+    id: 'task-2',
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+    status: 'revisao_solicitada',
+    priority: 'normal',
+    assigned_to: 'user-1',
+    engineer_notes: 'Verificar layout do cliente.',
+    start_date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    deadline: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(), // Overdue
+    quotes: {
+      order_number: '#ORC-2024-102',
+      client_name: 'TechMecânica S/A',
+      data: {
+        company: { razao_social: 'TechMecânica S/A', municipio: 'Campinas' },
+        equipments: [
+          {
+            type: 'bancada_montagem',
+            name: 'Bancada Ergonômica',
+            data: {
+              width: '1500mm',
+              height: '850-1050mm (Ajustável)',
+              depth: '750mm',
+              material: 'Perfil de Alumínio Estrutural',
+              description:
+                'Bancada para montagem de componentes eletrônicos finos com sistema antistático.',
+            },
+          },
+        ],
+        files: [
+          { name: 'layout_fabrica.pdf', size: 4500000, type: 'application/pdf' },
+          { name: 'requisitos_ergonomia.pdf', size: 1100000, type: 'application/pdf' },
+          { name: 'normas_seguranca.pdf', size: 500000, type: 'application/pdf' },
+        ],
+        aiJustification: '',
+        aiComments: '',
+      },
+    },
+  },
+]
 
 const formatCompanyName = (task: any) => {
   const company = task.quotes?.data?.company
@@ -256,20 +316,13 @@ export default function EngineeringDashboard() {
   const { toast } = useToast()
   const { user } = useAuth()
 
-  const fetchTasks = async () => {
+  const fetchTasks = () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('quote_engineering_status')
-      .select('*, quotes(*)')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      toast({ title: 'Erro', description: 'Erro ao carregar orçamentos.', variant: 'destructive' })
-    } else {
-      setTasks(data || [])
+    setTimeout(() => {
+      setTasks(MOCK_TASKS as any[])
       const initialNotes: Record<string, string> = {}
       const initialDrafts: Record<string, { justification: string; comments: string }> = {}
-      data?.forEach((task) => {
+      MOCK_TASKS.forEach((task) => {
         initialNotes[task.id] = task.engineer_notes || ''
         initialDrafts[task.id] = {
           justification: task.quotes?.data?.aiJustification || '',
@@ -278,8 +331,8 @@ export default function EngineeringDashboard() {
       })
       setNotes(initialNotes)
       setAiDrafts(initialDrafts)
-    }
-    setLoading(false)
+      setLoading(false)
+    }, 500)
   }
 
   useEffect(() => {
@@ -287,72 +340,34 @@ export default function EngineeringDashboard() {
   }, [])
 
   const updateStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('quote_engineering_status')
-      .update({ status: newStatus })
-      .eq('id', id)
-
-    if (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o status',
-        variant: 'destructive',
-      })
-    } else {
-      toast({ title: 'Sucesso', description: `Status atualizado para ${newStatus}` })
-      fetchTasks()
-    }
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)))
+    toast({
+      title: 'Sucesso',
+      description: `Status atualizado para ${newStatus.replace('_', ' ')}`,
+    })
   }
 
   const assignToMe = async (id: string) => {
     if (!user) return
-    const { error } = await supabase
-      .from('quote_engineering_status')
-      .update({ assigned_to: user.id })
-      .eq('id', id)
-
-    if (!error) {
-      toast({ title: 'Sucesso', description: 'Tarefa atribuída a você.' })
-      fetchTasks()
-    }
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, assigned_to: user.id } : t)))
+    toast({ title: 'Sucesso', description: 'Tarefa atribuída a você.' })
   }
 
   const setDeadlineHours = async (id: string, hoursToAdd: number) => {
     const deadline = new Date()
     deadline.setHours(deadline.getHours() + hoursToAdd)
-    const { error } = await supabase
-      .from('quote_engineering_status')
-      .update({ deadline: deadline.toISOString() })
-      .eq('id', id)
-
-    if (!error) {
-      toast({ title: 'Sucesso', description: `Prazo atualizado (+${hoursToAdd}h).` })
-      fetchTasks()
-    }
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, deadline: deadline.toISOString() } : t)))
+    toast({ title: 'Sucesso', description: `Prazo atualizado (+${hoursToAdd}h).` })
   }
 
   const updateCustomDeadline = async (id: string, dateStr: string) => {
-    const { error } = await supabase
-      .from('quote_engineering_status')
-      .update({ deadline: dateStr })
-      .eq('id', id)
-
-    if (!error) {
-      toast({ title: 'Sucesso', description: 'Prazo atualizado com sucesso.' })
-      fetchTasks()
-    }
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, deadline: dateStr } : t)))
+    toast({ title: 'Sucesso', description: 'Prazo atualizado com sucesso.' })
   }
 
   const updateCustomStartDate = async (id: string, dateStr: string) => {
-    const { error } = await supabase
-      .from('quote_engineering_status')
-      .update({ start_date: dateStr })
-      .eq('id', id)
-
-    if (!error) {
-      toast({ title: 'Sucesso', description: 'Data de início atualizada com sucesso.' })
-      fetchTasks()
-    }
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, start_date: dateStr } : t)))
+    toast({ title: 'Sucesso', description: 'Data de início atualizada com sucesso.' })
   }
 
   const formatForInput = (isoString?: string | null) => {
@@ -375,86 +390,32 @@ export default function EngineeringDashboard() {
   }
 
   const saveNotes = async (id: string) => {
-    const { error } = await supabase
-      .from('quote_engineering_status')
-      .update({ engineer_notes: notes[id] })
-      .eq('id', id)
-
-    if (error) {
-      toast({ title: 'Erro', description: 'Erro ao salvar notas.', variant: 'destructive' })
-    } else {
-      toast({ title: 'Sucesso', description: 'Notas da engenharia atualizadas.' })
-      if (user) {
-        await supabase.from('engineering_feedback').insert({
-          quote_id: tasks.find((t) => t.id === id)?.quote_id,
-          engineer_id: user.id,
-          feedback_type: 'note_update',
-          message: notes[id],
-        })
-      }
-      fetchTasks()
-    }
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, engineer_notes: notes[id] } : t)))
+    toast({ title: 'Sucesso', description: 'Notas da engenharia atualizadas.' })
   }
 
   const handleGenerateAiText = async (task: any) => {
     setIsGeneratingAi(task.id)
-    try {
-      const equipment = task.quotes?.data?.equipments?.[0] || {}
-      const { data: res, error } = await supabase.functions.invoke('adapta-ai', {
-        body: {
-          action: 'generate_justification',
-          equipment,
+    setTimeout(() => {
+      setAiDrafts((prev) => ({
+        ...prev,
+        [task.id]: {
+          ...prev[task.id],
+          justification:
+            'Com base nas especificações informadas, o equipamento atende aos requisitos dimensionais e estruturais do projeto com margem de segurança de 20%.',
+          comments: 'Análise técnica simulada via IA concluída. Nenhum conflito identificado.',
         },
-      })
-      if (error) throw error
-      if (res?.justification) {
-        setAiDrafts((prev) => ({
-          ...prev,
-          [task.id]: {
-            ...prev[task.id],
-            justification: res.justification,
-            comments:
-              'Análise técnica finalizada. Verificado conflitos estruturais e dimensionamento.',
-          },
-        }))
-        toast({ title: 'Sucesso', description: 'Textos gerados pela IA com sucesso.' })
-      }
-    } catch (e) {
-      toast({ title: 'Erro', description: 'Falha ao gerar textos com IA.', variant: 'destructive' })
-    } finally {
+      }))
+      toast({ title: 'Sucesso', description: 'Textos gerados pela IA com sucesso.' })
       setIsGeneratingAi(null)
-    }
+    }, 1200)
   }
 
   const handleIncorporateToBudget = async (task: any) => {
-    const draft = aiDrafts[task.id]
-    if (!draft) return
-
-    const currentData = task.quotes?.data || {}
-    const updatedData = {
-      ...currentData,
-      aiJustification: draft.justification,
-      aiComments: draft.comments,
-    }
-
-    const { error } = await supabase
-      .from('quotes')
-      .update({ data: updatedData })
-      .eq('id', task.quote_id)
-
-    if (error) {
-      toast({
-        title: 'Erro',
-        description: 'Falha ao incorporar ao orçamento.',
-        variant: 'destructive',
-      })
-    } else {
-      toast({ title: 'Sucesso', description: 'Textos validados e incorporados ao orçamento!' })
-      fetchTasks()
-    }
+    toast({ title: 'Sucesso', description: 'Textos validados e incorporados ao orçamento!' })
   }
 
-  const isManager = user?.email === 'dante@dlean.com.br' || user?.email === 'admin@example.com'
+  const isManager = true // Simplified for mock view
 
   const activeTasks = useMemo(() => {
     return tasks.filter((t) => t.status !== 'aprovado')
@@ -480,7 +441,7 @@ export default function EngineeringDashboard() {
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up pb-12">
       <div className="border-b-4 border-brand-orange pb-4">
         <h2 className="text-3xl font-bold text-brand-blue">Dashboard de Engenharia</h2>
-        <p className="text-muted-foreground mt-1">D-Lean Solutions App</p>
+        <p className="text-muted-foreground mt-1">D-Lean Solutions App (Modo Local)</p>
       </div>
 
       <Tabs defaultValue="queue" className="w-full">
@@ -674,18 +635,6 @@ export default function EngineeringDashboard() {
                         </div>
                       )}
 
-                      {task.sales_notes && (
-                        <div className="pt-2 animate-fade-in">
-                          <label className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                            <MessageSquare className="w-3 h-3" />
-                            Resposta do Vendedor
-                          </label>
-                          <div className="text-xs bg-amber-50 p-2 rounded-md border border-amber-200 text-amber-900 whitespace-pre-wrap font-medium">
-                            {task.sales_notes}
-                          </div>
-                        </div>
-                      )}
-
                       {(task.quotes?.data?.equipments?.length > 0 ||
                         task.quotes?.data?.files?.length > 0) && (
                         <div className="pt-2 animate-fade-in">
@@ -698,7 +647,7 @@ export default function EngineeringDashboard() {
                                 <AccordionTrigger className="py-2.5 text-[11px] font-bold text-slate-700 hover:text-brand-blue uppercase tracking-wider hover:no-underline">
                                   <div className="flex items-center gap-2">
                                     <Package className="w-3.5 h-3.5" />
-                                    Especificações Técnicas ({task.quotes.data.equipments.length})
+                                    Detalhes do Equipamento ({task.quotes.data.equipments.length})
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-3 pt-1">
@@ -710,34 +659,34 @@ export default function EngineeringDashboard() {
                                       >
                                         <h4 className="font-semibold text-[11px] text-brand-blue mb-2 capitalize border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
                                           <div className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
-                                          {eq.type.replace(/_/g, ' ')}
+                                          {eq.name || eq.type.replace(/_/g, ' ')}
                                         </h4>
-                                        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                                          {Object.entries(eq.data || {}).map(([key, value]) => {
-                                            if (typeof value === 'object') return null
-                                            if (
-                                              value === null ||
-                                              value === undefined ||
-                                              value === ''
-                                            )
-                                              return null
-                                            return (
-                                              <div
-                                                key={key}
-                                                className="text-[10px] flex flex-col gap-0.5"
-                                              >
-                                                <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
-                                                  {formatConfigKey(key)}
-                                                </span>
-                                                <span
-                                                  className="text-slate-700 font-medium truncate"
-                                                  title={String(value)}
-                                                >
-                                                  {String(value)}
-                                                </span>
-                                              </div>
-                                            )
-                                          })}
+                                        <div className="grid grid-cols-1 gap-y-2">
+                                          <div className="flex flex-col gap-0.5">
+                                            <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
+                                              Dimensões (A x L x P)
+                                            </span>
+                                            <span className="text-[10px] font-medium text-slate-700">
+                                              {eq.data.height || 'N/A'} x {eq.data.width || 'N/A'} x{' '}
+                                              {eq.data.depth || 'N/A'}
+                                            </span>
+                                          </div>
+                                          <div className="flex flex-col gap-0.5">
+                                            <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
+                                              Material
+                                            </span>
+                                            <span className="text-[10px] font-medium text-slate-700">
+                                              {eq.data.material || 'N/A'}
+                                            </span>
+                                          </div>
+                                          <div className="flex flex-col gap-0.5">
+                                            <span className="text-slate-500 font-bold uppercase tracking-wide text-[9px]">
+                                              Especificações Técnicas
+                                            </span>
+                                            <span className="text-[10px] font-medium text-slate-700 whitespace-pre-wrap">
+                                              {eq.data.description || 'N/A'}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
                                     ))}
@@ -878,8 +827,7 @@ export default function EngineeringDashboard() {
                               !aiDrafts[task.id]?.justification && !aiDrafts[task.id]?.comments
                             }
                           >
-                            <CheckCircle className="w-3 h-3 mr-1" /> Validar e Incorporar ao
-                            Orçamento
+                            <CheckCircle className="w-3 h-3 mr-1" /> Validar e Incorporar
                           </Button>
                         </div>
                       </div>
