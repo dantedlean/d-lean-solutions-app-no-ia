@@ -1,151 +1,97 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Wrench, Trash2 } from 'lucide-react'
-import { CartForm } from './forms/CartForm'
-import { FlowRackForm } from './forms/FlowRackForm'
-import { BancadaForm } from './forms/BancadaForm'
-import { EsteiraForm } from './forms/EsteiraForm'
+import { Plus, Trash2 } from 'lucide-react'
 
 export function EquipmentMatrix({
   equipments,
   onAdd,
   onRemove,
+  onUpdate,
 }: {
   equipments: any[]
   onAdd: (eq: any) => void
-  onRemove: (idx: number) => void
+  onRemove: (id: string) => void
+  onUpdate?: (id: string, data: any) => void
 }) {
-  const [equipment, setEquipment] = useState('')
-  const [method, setMethod] = useState('')
-
-  const handleAdd = (type: string, data: any) => {
-    onAdd({ type, data: { ...data, method } })
-    setEquipment('')
-    setMethod('')
-  }
-
   return (
-    <div className="space-y-6">
-      {equipments.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 animate-fade-in-up">
-          {equipments.map((eq: any, i: number) => (
-            <Card
-              key={i}
-              className="border-l-4 border-l-[#d62828] shadow-sm relative overflow-hidden"
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Equipamentos</CardTitle>
+        <Button
+          onClick={() => onAdd({ id: Math.random().toString(), type: 'Bancada', data: {} })}
+          size="sm"
+          variant="outline"
+        >
+          <Plus className="w-4 h-4 mr-2" /> Adicionar
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {equipments.length === 0 && (
+          <p className="text-sm text-muted-foreground">Nenhum equipamento adicionado.</p>
+        )}
+        {equipments.map((eq) => (
+          <div key={eq.id} className="p-4 border rounded-md space-y-4 relative bg-slate-50/50">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 text-destructive hover:bg-destructive/10"
+              onClick={() => onRemove(eq.id)}
             >
-              <CardHeader className="p-4 pb-2 flex flex-row justify-between items-start">
-                <div>
-                  <CardTitle className="text-sm font-bold text-[#1e4b8f]">{eq.type}</CardTitle>
-                  <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">
-                    {eq.data.method}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onRemove(i)}
-                  className="h-6 w-6 text-destructive hover:bg-destructive/10"
+              <Trash2 className="w-4 h-4" />
+            </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-2">
+                <Label>Tipo de Equipamento</Label>
+                <select
+                  className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  value={eq.type}
+                  onChange={(e) => onUpdate && onUpdate(eq.id, { type: e.target.value })}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <p
-                  className="text-xs text-muted-foreground truncate"
-                  title={JSON.stringify(eq.data)}
-                >
-                  {eq.data.dimensoes ? `Dim: ${eq.data.dimensoes}` : 'Ver detalhes...'}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <Card className="border-t-4 border-t-[#d62828] shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2 text-[#d62828]">
-            <Wrench className="w-5 h-5" /> Matriz de Lógica de Navegação
-          </CardTitle>
-          <CardDescription>
-            Siga os gatilhos para configurar as especificações técnicas de forma precisa.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>1. Selecione o Equipamento</Label>
-              <Select
-                value={equipment}
-                onValueChange={(v) => {
-                  setEquipment(v)
-                  setMethod('')
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha um equipamento..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cart">Carrinho (Cart)</SelectItem>
-                  <SelectItem value="flowrack">Flow Rack</SelectItem>
-                  <SelectItem value="bancada">Bancada / Estante</SelectItem>
-                  <SelectItem value="esteira">Esteira</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {equipment && (
-              <div className="space-y-2 animate-fade-in-up">
-                <Label>2. Método de Construção</Label>
-                <Select value={method} onValueChange={setMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolha o método..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lean">Lean Pipe (Modular)</SelectItem>
-                    <SelectItem value="soldado">Soldado</SelectItem>
-                    <SelectItem value="hibrido">Híbrido</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="Bancada">Bancada</option>
+                  <option value="Carrinho">Carrinho</option>
+                  <option value="Flow Rack">Flow Rack</option>
+                </select>
               </div>
-            )}
+              <div className="space-y-2">
+                <Label>Método de Construção</Label>
+                <select
+                  className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  value={eq.method}
+                  onChange={(e) => onUpdate && onUpdate(eq.id, { method: e.target.value })}
+                >
+                  <option value="Soldado">Soldado</option>
+                  <option value="Lean Pipe (Modular)">Lean Pipe (Modular)</option>
+                  <option value="Híbrido">Híbrido</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Dimensões (mm)</Label>
+                <Input
+                  value={eq.data?.dimensoes || ''}
+                  onChange={(e) =>
+                    onUpdate && onUpdate(eq.id, { data: { ...eq.data, dimensoes: e.target.value } })
+                  }
+                  placeholder="Ex: 1000x500x900"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Carga Tampo (kg)</Label>
+                <Input
+                  id="carga_tampo"
+                  value={eq.data?.carga_tampo || ''}
+                  onChange={(e) =>
+                    onUpdate &&
+                    onUpdate(eq.id, { data: { ...eq.data, carga_tampo: e.target.value } })
+                  }
+                  placeholder="Ex: 100"
+                />
+              </div>
+            </div>
           </div>
-
-          {equipment && method && (
-            <div className="mt-8 pt-6 border-t animate-fade-in-up">
-              <h3 className="font-semibold text-lg text-[#1e4b8f] mb-4">
-                3. Especificações Técnicas
-              </h3>
-              <div className="bg-slate-50 p-4 md:p-6 rounded-xl border">
-                {equipment === 'cart' && (
-                  <CartForm method={method} onAdd={(d: any) => handleAdd('Carrinho', d)} />
-                )}
-                {equipment === 'flowrack' && (
-                  <FlowRackForm method={method} onAdd={(d: any) => handleAdd('Flow Rack', d)} />
-                )}
-                {equipment === 'bancada' && (
-                  <BancadaForm
-                    method={method}
-                    onAdd={(d: any) => handleAdd('Bancada/Estante', d)}
-                  />
-                )}
-                {equipment === 'esteira' && (
-                  <EsteiraForm method={method} onAdd={(d: any) => handleAdd('Esteira', d)} />
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        ))}
+      </CardContent>
+    </Card>
   )
 }

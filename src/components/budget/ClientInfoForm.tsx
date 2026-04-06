@@ -1,121 +1,32 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
-import { Building2 } from 'lucide-react'
-
-const UFS = [
-  'AC',
-  'AL',
-  'AP',
-  'AM',
-  'BA',
-  'CE',
-  'DF',
-  'ES',
-  'GO',
-  'MA',
-  'MT',
-  'MS',
-  'MG',
-  'PA',
-  'PB',
-  'PR',
-  'PE',
-  'PI',
-  'RJ',
-  'RN',
-  'RS',
-  'RO',
-  'RR',
-  'SC',
-  'SP',
-  'SE',
-  'TO',
-]
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function ClientInfoForm({ onChange }: { onChange: (data: any) => void }) {
-  const [cnpj, setCnpj] = useState('')
-  const [razao, setRazao] = useState('')
-  const [uf, setUf] = useState('')
-  const { toast } = useToast()
-
-  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let v = e.target.value.replace(/\D/g, '')
-    v = v.replace(/^(\d{2})(\d)/, '$1.$2')
-    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    v = v.replace(/\.(\d{3})(\d)/, '.$1/$2')
-    v = v.replace(/(\d{4})(\d)/, '$1-$2')
-    setCnpj(v)
-
-    if (v.length === 18) {
-      toast({ title: 'Consultando API da Receita/Maxiprod...' })
-      setTimeout(() => {
-        setRazao('Indústrias Exemplo S/A')
-        setUf('SP')
-        toast({ title: 'Dados carregados com sucesso!' })
-        onChange({ cnpj: v, razaoSocial: 'Indústrias Exemplo S/A', uf: 'SP' })
-      }, 800)
-    } else {
-      onChange({ cnpj: v, razaoSocial: razao, uf })
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ [e.target.name]: e.target.value })
   }
 
   return (
-    <Card className="border-t-4 border-t-[#1e4b8f] shadow-sm">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2 text-[#1e4b8f]">
-          <Building2 className="w-5 h-5" /> Identificação do Cliente
-        </CardTitle>
+        <CardTitle>Dados do Cliente</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="space-y-2">
-          <Label>CNPJ</Label>
-          <Input
-            placeholder="00.000.000/0000-00"
-            maxLength={18}
-            value={cnpj}
-            onChange={handleCnpjChange}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Razão Social</Label>
-          <Input
-            value={razao}
-            onChange={(e) => {
-              setRazao(e.target.value)
-              onChange({ cnpj, razaoSocial: e.target.value, uf })
-            }}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Estado (UF)</Label>
-          <Select
-            value={uf}
-            onValueChange={(v) => {
-              setUf(v)
-              onChange({ cnpj, razaoSocial: razao, uf: v })
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              {UFS.map((st) => (
-                <SelectItem key={st} value={st}>
-                  {st}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="cnpj">CNPJ</Label>
+            <Input id="cnpj" name="cnpj" onChange={handleChange} placeholder="00.000.000/0000-00" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="razaoSocial">Razão Social</Label>
+            <Input
+              id="razaoSocial"
+              name="razaoSocial"
+              onChange={handleChange}
+              placeholder="Empresa XYZ"
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

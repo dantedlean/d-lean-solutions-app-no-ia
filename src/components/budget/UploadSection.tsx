@@ -1,49 +1,53 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { FileImage, FileText, Sparkles } from 'lucide-react'
-
-const Dropzone = ({ title, icon: Icon, highlight = false, onUpload }: any) => (
-  <div
-    className={`relative flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl transition-colors cursor-pointer group ${highlight ? 'border-[#1e4b8f] bg-[#1e4b8f]/5' : 'border-muted-foreground/25 hover:bg-muted/50'}`}
-  >
-    <input
-      type="file"
-      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-      onChange={onUpload}
-    />
-    <Icon
-      className={`w-8 h-8 mb-3 ${highlight ? 'text-[#1e4b8f]' : 'text-muted-foreground group-hover:text-primary'}`}
-    />
-    <p className={`text-sm font-medium text-center ${highlight ? 'text-[#1e4b8f]' : ''}`}>
-      {title}
-    </p>
-    <p className="text-xs text-muted-foreground mt-1 text-center">Clique ou arraste o arquivo</p>
-  </div>
-)
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { UploadCloud } from 'lucide-react'
+import { useState } from 'react'
 
 export function UploadSection({ onFiles }: { onFiles: (files: File[]) => void }) {
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) {
-      onFiles([e.target.files[0] as unknown as File])
-    }
-  }
+  const [dragActive, setDragActive] = useState(false)
 
   return (
-    <Card className="shadow-sm border-t-4 border-t-[#d62828]">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-lg text-[#d62828]">Uploads e Documentação</CardTitle>
-        <CardDescription>
-          Anexe referências visuais e técnicas para a engenharia e IA.
-        </CardDescription>
+        <CardTitle>Arquivos de Referência</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Dropzone title="Fotos do Local/Processo" icon={FileImage} />
-        <Dropzone title="Documentos Técnicos (PDF/Planilha)" icon={FileText} />
-        <Dropzone
-          title="Croqui Principal (Base para IA)"
-          icon={Sparkles}
-          highlight
-          onUpload={handleUpload}
-        />
+      <CardContent>
+        <div
+          className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-slate-300'}`}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragActive(true)
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setDragActive(false)
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              onFiles(Array.from(e.dataTransfer.files))
+            }
+          }}
+        >
+          <UploadCloud className="w-10 h-10 text-muted-foreground mb-4" />
+          <p className="text-sm font-medium">Arraste e solte arquivos aqui</p>
+          <p className="text-xs text-muted-foreground mb-4">PNG, JPG, PDF até 10MB</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const input = document.createElement('input')
+              input.type = 'file'
+              input.multiple = true
+              input.onchange = (e: any) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  onFiles(Array.from(e.target.files))
+                }
+              }
+              input.click()
+            }}
+          >
+            Selecionar Arquivos
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

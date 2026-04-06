@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Save, Wand2, CheckCircle2, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import logoDlean from '@/assets/logo-dlean-ee5f5.png'
 import { useBudgetStore } from '@/stores/useBudgetStore'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
@@ -238,13 +237,9 @@ export default function Index() {
     <div className="max-w-5xl mx-auto space-y-6 pb-20 animate-fade-in-up">
       <div className="flex justify-center mb-2">
         <img
-          src={logoDlean}
+          src="https://img.usecurling.com/i?q=industry&shape=fill&color=blue"
           alt="D-Lean Solutions"
           className="h-16 object-contain"
-          onError={(e) => {
-            e.currentTarget.onerror = null
-            e.currentTarget.src = 'https://img.usecurling.com/i?q=industry&shape=fill&color=blue'
-          }}
         />
       </div>
 
