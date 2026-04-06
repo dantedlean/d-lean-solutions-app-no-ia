@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { ClientInfoForm } from '@/components/budget/ClientInfoForm'
 import { EquipmentMatrix } from '@/components/budget/EquipmentMatrix'
 import { UploadSection } from '@/components/budget/UploadSection'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Save, Wand2, CheckCircle2, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import logoDlean from '@/assets/logo-dlean-ee5f5.png'
 import { useBudgetStore } from '@/stores/useBudgetStore'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
@@ -51,42 +52,6 @@ export default function Index() {
     return `#ORC-${year}-${seq}`
   }, [])
 
-  // MOTOR DE PROMPT D-LEAN ELITE (Tradução Técnica e Vínculo de Dados)
-  useEffect(() => {
-    if (equipments.length === 1) {
-      const eq = equipments[0]
-      const type = eq.type || 'Equipamento'
-      const method = eq.method || eq.data?.method || 'soldado'
-      const dim = eq.data?.dimensoes || 'Not specified'
-      const cor = eq.data?.corRal || eq.data?.corTubo || 'Standard'
-      const tampo = eq.data?.materialTampo || eq.data?.tampo || ''
-
-      // Mapeamento para tradução técnica (DNA D-Lean)
-      let typeEn = type
-      if (type.toLowerCase().includes('bancada')) typeEn = 'Industrial Workbench'
-      else if (type.toLowerCase().includes('carrinho')) typeEn = 'Industrial Trolley/Cart'
-      else if (type.toLowerCase().includes('flow rack')) typeEn = 'Gravity Flow Rack'
-      else typeEn = `${type} industrial equipment`
-
-      let methodEn = 'Heavy-duty welded steel structure'
-      if (method === 'lean' || method === 'modular') {
-        methodEn = 'Lean modular pipe and joint system'
-      } else if (method === 'hibrido') {
-        methodEn = 'Hybrid structure: welded steel base with modular pipe upper frame'
-      }
-
-      let tampoEn = ''
-      if (tampo.toLowerCase().includes('mdf')) tampoEn = ', MDF tabletop'
-      else if (tampo.toLowerCase().includes('borracha')) tampoEn = ', Rubber mat top'
-      else if (tampo.toLowerCase().includes('inox')) tampoEn = ', Stainless steel top'
-      else if (tampo) tampoEn = `, ${tampo} top`
-
-      const generated = `Studio photo of a SINGLE isolated ${typeEn}, ${methodEn}, dimensions ${dim}mm${tampoEn}, RAL ${cor} powder coating. Professional technical catalog lighting, solid neutral grey background, isometric view, 8k resolution, photorealistic industrial render. NO factory background, NO robots, NO people. NEVER use aluminum or futuristic plastics. ONLY steel and carbon steel.`
-
-      setAiPrompt(generated)
-    }
-  }, [equipments, setAiPrompt])
-
   const handleConsolidate = async () => {
     if (!user) {
       toast({ title: 'Erro', description: 'Usuário não autenticado.', variant: 'destructive' })
@@ -103,7 +68,13 @@ export default function Index() {
           client_cnpj: client.cnpj,
           client_name: client.razaoSocial || 'Cliente Novo',
           status: 'engenharia',
-          data: { equipments, client, aiJustification, aiComments },
+          data: {
+            equipments,
+            client,
+            aiJustification,
+            aiComments,
+            files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+          },
         })
         .select()
         .single()
@@ -155,7 +126,13 @@ export default function Index() {
         .update({
           client_cnpj: client.cnpj,
           client_name: client.razaoSocial || 'Cliente Novo',
-          data: { equipments, client, aiJustification, aiComments },
+          data: {
+            equipments,
+            client,
+            aiJustification,
+            aiComments,
+            files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+          },
         })
         .eq('id', quoteId)
 
@@ -228,6 +205,15 @@ export default function Index() {
               Iniciar Novo Orçamento
             </Button>
           </div>
+          <div className="mt-6 flex justify-center">
+            <Button
+              variant="link"
+              onClick={() => window.open('/engineering', '_blank')}
+              className="text-muted-foreground hover:text-brand-blue"
+            >
+              Acessar Painel de Engenharia &rarr;
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -237,9 +223,13 @@ export default function Index() {
     <div className="max-w-5xl mx-auto space-y-6 pb-20 animate-fade-in-up">
       <div className="flex justify-center mb-2">
         <img
-          src="https://img.usecurling.com/i?q=industry&shape=fill&color=blue"
+          src={logoDlean}
           alt="D-Lean Solutions"
           className="h-16 object-contain"
+          onError={(e) => {
+            e.currentTarget.onerror = null
+            e.currentTarget.src = 'https://img.usecurling.com/i?q=industry&shape=fill&color=blue'
+          }}
         />
       </div>
 

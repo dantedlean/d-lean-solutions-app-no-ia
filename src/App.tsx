@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
 import ClientDatabase from './pages/ClientDatabase'
 import TechnicalCatalog from './pages/TechnicalCatalog'
+import EngineeringDashboard from './pages/EngineeringDashboard'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { AuthProvider } from '@/hooks/use-auth'
@@ -20,6 +21,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/clients" element={<ClientDatabase />} />
             <Route path="/catalog" element={<TechnicalCatalog />} />
+            <Route path="/engineering" element={<EngineeringDashboard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
