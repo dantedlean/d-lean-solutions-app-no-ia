@@ -6,8 +6,9 @@ export function AttachmentList({ files }: { files: any[] }) {
   const { toast } = useToast()
 
   const handleDownload = (file: any) => {
-    if (file.url || file.path) {
-      window.open(file.url || file.path, '_blank')
+    const downloadUrl = file.url || file.path || file.link || file.fileUrl || file.preview
+    if (downloadUrl) {
+      window.open(downloadUrl, '_blank')
     } else {
       toast({
         title: 'Download indisponível',
@@ -36,8 +37,11 @@ export function AttachmentList({ files }: { files: any[] }) {
                   <FileText className="w-6 h-6" />
                 </div>
                 <div className="truncate">
-                  <p className="text-sm font-bold text-slate-700 truncate" title={file.name}>
-                    {file.name || `Anexo ${idx + 1}`}
+                  <p
+                    className="text-sm font-bold text-slate-700 truncate"
+                    title={file.name || file.fileName || file.title}
+                  >
+                    {file.name || file.fileName || file.title || `Anexo ${idx + 1}`}
                   </p>
                   {file.size && (
                     <p className="text-xs text-slate-500 font-mono mt-0.5">

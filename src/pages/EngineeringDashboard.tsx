@@ -67,8 +67,21 @@ export default function EngineeringDashboard() {
             <ScrollArea className="flex-1 h-full bg-slate-50/50">
               <div className="p-6 md:p-8 space-y-8">
                 <ProjectHeader quote={selectedQuote} />
-                <EquipmentList equipments={selectedQuote.data?.equipments || []} />
-                <AttachmentList files={selectedQuote.data?.files || []} />
+                <EquipmentList
+                  equipments={
+                    selectedQuote.data?.equipments ||
+                    selectedQuote.data?.items ||
+                    (selectedQuote.data?.equipment ? [selectedQuote.data.equipment] : [])
+                  }
+                />
+                <AttachmentList
+                  files={
+                    selectedQuote.data?.files ||
+                    selectedQuote.data?.attachments ||
+                    selectedQuote.data?.anexos ||
+                    []
+                  }
+                />
               </div>
             </ScrollArea>
           ) : (
