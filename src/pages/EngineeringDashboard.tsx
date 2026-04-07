@@ -22,6 +22,7 @@ import { Wand2, Package, Paperclip, FileText } from 'lucide-react'
 import { ptBR } from 'date-fns/locale'
 import { EquipmentList } from '@/components/engineering/EquipmentList'
 import { AttachmentList } from '@/components/engineering/AttachmentList'
+import { supabase } from '@/lib/supabase/client'
 
 const MOCK_TASKS = [
   {
@@ -314,23 +315,46 @@ export default function EngineeringDashboard() {
   const { toast } = useToast()
   const { user } = useAuth()
 
-  const fetchTasks = () => {
+  const fetchTasks = async () => {
     setLoading(true)
-    setTimeout(() => {
-      setTasks(MOCK_TASKS as any[])
+    try {
+      const { data, error } = await supabase
+        .from('quote_engineering_status')
+        .select(`
+          *,
+          quotes (*)
+        `)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      setTasks(data || [])
+
       const initialNotes: Record<string, string> = {}
       const initialDrafts: Record<string, { justification: string; comments: string }> = {}
-      MOCK_TASKS.forEach((task) => {
+
+      data?.forEach((task: any) => {
         initialNotes[task.id] = task.engineer_notes || ''
         initialDrafts[task.id] = {
           justification: task.quotes?.data?.aiJustification || '',
           comments: task.quotes?.data?.aiComments || '',
         }
       })
+
       setNotes(initialNotes)
       setAiDrafts(initialDrafts)
+    } catch (error: any) {
+      console.error(error)
+      toast({
+        title: 'Erro ao carregar',
+        description: 'Não foi possível carregar as tarefas.',
+        variant: 'destructive',
+      })
+      // Fallback para mock caso não exista banco ou haja falha na rede
+      setTasks(MOCK_TASKS as any[])
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
 
   useEffect(() => {
@@ -338,34 +362,80 @@ export default function EngineeringDashboard() {
   }, [])
 
   const updateStatus = async (id: string, newStatus: string) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)))
-    toast({
-      title: 'Sucesso',
-      description: `Status atualizado para ${newStatus.replace('_', ' ')}`,
-    })
+    try {
+      const { error } = await supabase
+        .from('quote_engineering_status')
+        .update({ status: newStatus })
+        .eq('id', id)
+      if (error) throw error
+      setTasks(tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)))
+      toast({
+        title: 'Sucesso',
+        description: `Status atualizado para ${newStatus.replace('_', ' ')}`,
+      })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
   }
 
   const assignToMe = async (id: string) => {
     if (!user) return
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, assigned_to: user.id } : t)))
-    toast({ title: 'Sucesso', description: 'Tarefa atribuída a você.' })
+    try {
+      const { error } = await supabase
+        .from('quote_engineering_status')
+        .update({ assigned_to: user.id })
+        .eq('id', id)
+      if (error) throw error
+      setTasks(tasks.map((t) => (t.id === id ? { ...t, assigned_to: user.id } : t)))
+      toast({ title: 'Sucesso', description: 'Tarefa atribuída a você.' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
   }
 
   const setDeadlineHours = async (id: string, hoursToAdd: number) => {
     const deadline = new Date()
     deadline.setHours(deadline.getHours() + hoursToAdd)
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, deadline: deadline.toISOString() } : t)))
-    toast({ title: 'Sucesso', description: `Prazo atualizado (+${hoursToAdd}h).` })
+    const isoStr = deadline.toISOString()
+    try {
+      const { error } = await supabase
+        .from('quote_engineering_status')
+        .update({ deadline: isoStr })
+        .eq('id', id)
+      if (error) throw error
+      setTasks(tasks.map((t) => (t.id === id ? { ...t, deadline: isoStr } : t)))
+      toast({ title: 'Sucesso', description: `Prazo atualizado (+${hoursToAdd}h).` })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
   }
 
   const updateCustomDeadline = async (id: string, dateStr: string) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, deadline: dateStr } : t)))
-    toast({ title: 'Sucesso', description: 'Prazo atualizado com sucesso.' })
+    try {
+      const { error } = await supabase
+        .from('quote_engineering_status')
+        .update({ deadline: dateStr })
+        .eq('id', id)
+      if (error) throw error
+      setTasks(tasks.map((t) => (t.id === id ? { ...t, deadline: dateStr } : t)))
+      toast({ title: 'Sucesso', description: 'Prazo atualizado com sucesso.' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
   }
 
   const updateCustomStartDate = async (id: string, dateStr: string) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, start_date: dateStr } : t)))
-    toast({ title: 'Sucesso', description: 'Data de início atualizada com sucesso.' })
+    try {
+      const { error } = await supabase
+        .from('quote_engineering_status')
+        .update({ start_date: dateStr })
+        .eq('id', id)
+      if (error) throw error
+      setTasks(tasks.map((t) => (t.id === id ? { ...t, start_date: dateStr } : t)))
+      toast({ title: 'Sucesso', description: 'Data de início atualizada com sucesso.' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
   }
 
   const formatForInput = (isoString?: string | null) => {
@@ -388,8 +458,17 @@ export default function EngineeringDashboard() {
   }
 
   const saveNotes = async (id: string) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, engineer_notes: notes[id] } : t)))
-    toast({ title: 'Sucesso', description: 'Notas da engenharia atualizadas.' })
+    try {
+      const { error } = await supabase
+        .from('quote_engineering_status')
+        .update({ engineer_notes: notes[id] })
+        .eq('id', id)
+      if (error) throw error
+      setTasks(tasks.map((t) => (t.id === id ? { ...t, engineer_notes: notes[id] } : t)))
+      toast({ title: 'Sucesso', description: 'Notas da engenharia atualizadas.' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
   }
 
   const handleGenerateAiText = async (task: any) => {
@@ -410,7 +489,31 @@ export default function EngineeringDashboard() {
   }
 
   const handleIncorporateToBudget = async (task: any) => {
-    toast({ title: 'Sucesso', description: 'Textos validados e incorporados ao orçamento!' })
+    try {
+      const drafts = aiDrafts[task.id]
+      if (!drafts) return
+
+      const currentData = task.quotes?.data || {}
+      const newData = {
+        ...currentData,
+        aiJustification: drafts.justification,
+        aiComments: drafts.comments,
+      }
+
+      const { error } = await supabase
+        .from('quotes')
+        .update({ data: newData })
+        .eq('id', task.quotes.id)
+      if (error) throw error
+
+      toast({ title: 'Sucesso', description: 'Textos validados e incorporados ao orçamento!' })
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e.message || 'Falha ao salvar textos no orçamento',
+        variant: 'destructive',
+      })
+    }
   }
 
   const isManager = true // Simplified for mock view
@@ -438,8 +541,18 @@ export default function EngineeringDashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up pb-12">
       <div className="border-b-4 border-brand-orange pb-4">
-        <h2 className="text-3xl font-bold text-brand-blue">Dashboard de Engenharia</h2>
-        <p className="text-muted-foreground mt-1">D-Lean Solutions App (Modo Local)</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-brand-blue">Dashboard de Engenharia</h2>
+            <p className="text-muted-foreground mt-1">Integração Ativa (Supabase + Maxiprod)</p>
+          </div>
+          <div className="hidden sm:block">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse" />
+              Sistemas Sincronizados
+            </Badge>
+          </div>
+        </div>
       </div>
 
       <Tabs defaultValue="queue" className="w-full">

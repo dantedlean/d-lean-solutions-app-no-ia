@@ -1,6 +1,7 @@
 {
   "_versions": {
     "dlean-integra": 11,
-    "adapta-ai": 7
+    "adapta-ai": 7,
+    "maxiprod-sync": 1
   }
 }

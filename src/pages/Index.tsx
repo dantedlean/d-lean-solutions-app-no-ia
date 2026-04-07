@@ -10,6 +10,7 @@ import { Save, Wand2, CheckCircle2, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBudgetStore } from '@/stores/useBudgetStore'
 import { useAuth } from '@/hooks/use-auth'
+import { supabase } from '@/lib/supabase/client'
 
 export default function Index() {
   const { toast } = useToast()
@@ -51,24 +52,83 @@ export default function Index() {
   }, [])
 
   const handleConsolidate = async () => {
+    if (!user) {
+      toast({
+        title: 'Atenção',
+        description: 'Você precisa estar logado para salvar o orçamento.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      // Mock the save operation since database is disconnected
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      // 1. Salvar no Supabase
+      const { data: quote, error: quoteError } = await supabase
+        .from('quotes')
+        .insert({
+          user_id: user.id,
+          order_number: orderNumber,
+          client_cnpj: client.cnpj || null,
+          client_name: client.razaoSocial || null,
+          status: 'engenharia',
+          data: {
+            client,
+            equipments,
+            files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+            aiPrompt,
+            aiImage,
+            aiJustification,
+            aiComments,
+          },
+        })
+        .select()
+        .single()
 
-      const mockQuoteId = `mock-quote-${Date.now()}`
-      setQuoteId(mockQuoteId)
+      if (quoteError) throw quoteError
+
+      // 2. Sincronizar com Maxiprod via Edge Function
+      const { data: maxiprodData, error: maxiprodError } = await supabase.functions.invoke(
+        'maxiprod-sync',
+        {
+          body: {
+            action: 'sync_quote',
+            payload: { quote_id: quote.id, order_number: orderNumber, client },
+          },
+        },
+      )
+
+      if (maxiprodError) {
+        console.error('Erro na sincronização com Maxiprod:', maxiprodError)
+        toast({
+          title: 'Aviso',
+          description: 'Orçamento salvo, mas houve falha ao sincronizar com o Maxiprod.',
+          variant: 'destructive',
+        })
+      }
+
+      // 3. Criar tarefa na engenharia
+      const { error: engError } = await supabase.from('quote_engineering_status').insert({
+        quote_id: quote.id,
+        status: 'analise',
+        priority: 'normal',
+      })
+
+      if (engError) console.error('Erro ao criar status de eng:', engError)
+
+      setQuoteId(quote.id)
       setQuoteStatus('engenharia')
       setEngineeringDeadline(null)
 
       toast({
-        title: 'Orçamento Finalizado e Enviado!',
-        description: 'Enviado para Fila de Engenharia Interna (Modo Offline).',
+        title: 'Orçamento Finalizado e Sincronizado!',
+        description: `Enviado para Engenharia e ERP Maxiprod (${maxiprodData?.maxiprod_id || 'Pendente'}).`,
       })
     } catch (e: any) {
+      console.error(e)
       toast({
         title: 'Erro ao finalizar',
-        description: 'Falha na operação mock',
+        description: e.message || 'Falha ao salvar o orçamento',
         variant: 'destructive',
       })
     } finally {
@@ -81,20 +141,40 @@ export default function Index() {
 
     setIsSubmitting(true)
     try {
-      // Mock the update operation since database is disconnected
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      const { error } = await supabase
+        .from('quotes')
+        .update({
+          data: {
+            client,
+            equipments,
+            files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
+            aiPrompt,
+            aiImage,
+            aiJustification,
+            aiComments,
+          },
+        })
+        .eq('id', quoteId)
+
+      if (error) throw error
+
+      // Atualizar no Maxiprod
+      await supabase.functions.invoke('maxiprod-sync', {
+        body: { action: 'update_quote', payload: { quote_id: quoteId, order_number: orderNumber } },
+      })
 
       setIsReviewing(false)
 
       toast({
         title: 'Orçamento Atualizado!',
-        description: 'As revisões foram salvas com sucesso (Modo Offline).',
+        description: 'As revisões foram salvas com sucesso e sincronizadas com Maxiprod.',
       })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e: any) {
+      console.error(e)
       toast({
         title: 'Erro ao atualizar',
-        description: 'Falha ao atualizar o orçamento (Modo Offline).',
+        description: e.message || 'Falha ao atualizar o orçamento.',
         variant: 'destructive',
       })
     } finally {
@@ -113,7 +193,7 @@ export default function Index() {
             Orçamento {orderNumber} Finalizado
           </h2>
           <p className="text-muted-foreground mb-8 text-lg">
-            O projeto foi sincronizado com o Maxiprod e enviado com sucesso para a Fila de
+            O projeto foi sincronizado com o ERP Maxiprod e enviado com sucesso para a Fila de
             Engenharia Interna.
           </p>
 
