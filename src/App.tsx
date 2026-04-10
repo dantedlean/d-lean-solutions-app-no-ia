@@ -6,6 +6,7 @@ import Index from './pages/Index'
 import ClientDatabase from './pages/ClientDatabase'
 import TechnicalCatalog from './pages/TechnicalCatalog'
 import EngineeringDashboard from './pages/EngineeringDashboard'
+import AdminDashboard from './pages/AdminDashboard'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { AuthProvider } from '@/hooks/use-auth'
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/clients" element={<ClientDatabase />} />
             <Route path="/catalog" element={<TechnicalCatalog />} />
             <Route path="/engineering" element={<EngineeringDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

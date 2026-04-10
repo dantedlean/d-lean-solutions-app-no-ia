@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { FilePlus2, Users, BookOpen, Wifi, Database, Menu } from 'lucide-react'
+import { FilePlus2, Users, BookOpen, Wifi, Database, Menu, LayoutDashboard } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +22,7 @@ function AppSidebar() {
     { title: 'Novo Orçamento', icon: FilePlus2, url: '/' },
     { title: 'Banco de Clientes', icon: Users, url: '/clients' },
     { title: 'Catálogo Técnico', icon: BookOpen, url: '/catalog' },
+    { title: 'Gestão Admin', icon: LayoutDashboard, url: '/admin' },
   ]
 
   return (
