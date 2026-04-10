@@ -18,6 +18,7 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
     puxador: 'nao',
     freio: 'nao',
     tipoPiso: 'liso',
+    fechamento: 'aberto',
   })
   const update = (k: string, v: any) => setData((p: any) => ({ ...p, [k]: v }))
 
@@ -40,10 +41,10 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
   const shadowSuffix = shadowTemplate.substring(dimensoesDisplay.length)
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label>Dimensões Externas</Label>
+    <div className="space-y-8 animate-fade-in">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-2 md:col-span-2">
+          <Label>Dimensões Externas Úteis (C x L x A)</Label>
           <div className="relative w-full">
             <div className="absolute inset-0 flex items-center px-3 text-base md:text-sm pointer-events-none font-mono text-muted-foreground z-0">
               <span className="opacity-0">{dimensoesDisplay}</span>
@@ -56,110 +57,200 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
               placeholder="0000 x 0000 x 0000 mm"
             />
           </div>
-        </div>{' '}
-        <div className="space-y-2">
-          <Label>Peso do Produto (kg)</Label>
-          <Input type="number" onChange={(e) => update('peso', e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Carga Total (kg)</Label>
-          <Input type="number" onChange={(e) => update('carga', e.target.value)} />
+          <Label>Capacidade de Carga Total (kg)</Label>
+          <Input
+            type="number"
+            placeholder="Ex: 500"
+            onChange={(e) => update('carga', e.target.value)}
+          />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Tração</Label>
-          <Select value={data.tracao} onValueChange={(v) => update('tracao', v)}>
+          <Label>Peso Estimado do Produto (kg/unidade)</Label>
+          <Input
+            type="number"
+            placeholder="Ex: 15"
+            onChange={(e) => update('pesoProduto', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Nº de Prateleiras / Níveis</Label>
+          <Input
+            type="number"
+            placeholder="Ex: 3"
+            onChange={(e) => update('nNiveis', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Material das Prateleiras</Label>
+          <Select onValueChange={(v) => update('materialPrateleira', v)}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="manual">Manual</SelectItem>
-              <SelectItem value="reboque">Reboque Mecânico</SelectItem>
+              <SelectItem value="aco">Aço Lisa</SelectItem>
+              <SelectItem value="mdf">MDF / Compensado</SelectItem>
+              <SelectItem value="aramado">Tela Aramada</SelectItem>
+              <SelectItem value="tubular">Apoio Tubular</SelectItem>
+              <SelectItem value="rolete">Trilho de Rolete</SelectItem>
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        {data.tracao === 'reboque' && (
-          <div className="grid grid-cols-3 gap-2 bg-slate-100 p-2 rounded animate-fade-in">
-            <div className="space-y-1">
-              <Label className="text-xs">Nº Carrinhos</Label>
-              <Input type="number" onChange={(e) => update('nCarrinhos', e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Raio (mm)</Label>
-              <Input type="number" onChange={(e) => update('raioCurva', e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Espaço (mm)</Label>
-              <Input type="number" onChange={(e) => update('espacamento', e.target.value)} />
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-4">
+      <div className="border p-5 rounded-xl bg-slate-50/50 shadow-sm border-slate-200">
+        <h4 className="font-bold text-sm text-[#1e4b8f] mb-4 uppercase tracking-wider">
+          Acessórios de Movimentação e Estrutura
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <Label>Puxador</Label>
+            <Label>Sistema de Tração</Label>
+            <Select value={data.tracao} onValueChange={(v) => update('tracao', v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Empurre Manual</SelectItem>
+                <SelectItem value="reboque">Reboque Mecânico (Trem)</SelectItem>
+                <SelectItem value="agv">AGV / Robô</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(data.tracao === 'reboque' || data.tracao === 'agv') && (
+            <div className="space-y-2 animate-fade-in md:col-span-2">
+              <Label>Sistema de Engate (Cambão)</Label>
+              <Select onValueChange={(v) => update('sistemaEngate', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o engate" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pino_mola">Pino e Mola (Padrão)</SelectItem>
+                  <SelectItem value="automatico">Engate Automático / Olhal</SelectItem>
+                  <SelectItem value="bola">Engate Bola (Automotivo)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {data.tracao === 'reboque' && (
+            <div className="md:col-span-3 grid grid-cols-3 gap-4 bg-white p-4 rounded border border-slate-200 animate-fade-in">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-500">Nº Máx Carrinhos no Trem</Label>
+                <Input type="number" onChange={(e) => update('nCarrinhos', e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-500">
+                  Raio de Curva Corredor (mm)
+                </Label>
+                <Input type="number" onChange={(e) => update('raioCurva', e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-500">
+                  Espaço Livre Carrinhos (mm)
+                </Label>
+                <Input type="number" onChange={(e) => update('espacamento', e.target.value)} />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Puxador Ergonômico</Label>
             <Select value={data.puxador} onValueChange={(v) => update('puxador', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="sim">Sim</SelectItem>
+                <SelectItem value="sim">Sim (Tubular)</SelectItem>
+                <SelectItem value="alca">Sim (Alça estampada)</SelectItem>
                 <SelectItem value="nao">Não</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
-            <Label>Freio Manual</Label>
+            <Label>Freio Estacionário (Adicional)</Label>
             <Select value={data.freio} onValueChange={(v) => update('freio', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="sim">Sim</SelectItem>
+                <SelectItem value="pedal">Sim (Freio de Pedal/Floor Lock)</SelectItem>
+                <SelectItem value="manual">Sim (Alavanca Manual)</SelectItem>
+                <SelectItem value="nao">Não (Apenas nos rodízios)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Fechamento Lateral</Label>
+            <Select value={data.fechamento} onValueChange={(v) => update('fechamento', v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aberto">Aberto (Sem fechamento)</SelectItem>
+                <SelectItem value="tela">Tela Aramada</SelectItem>
+                <SelectItem value="chapa">Chapa Fechada</SelectItem>
+                <SelectItem value="lona">Cortina de Lona/PVC</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Bumper (Proteção contra Impacto)</Label>
+            <Select onValueChange={(v) => update('bumper', v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Não" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="borracha_cantos">Borracha nos Cantos</SelectItem>
+                <SelectItem value="borracha_perimetro">Borracha em todo Perímetro</SelectItem>
+                <SelectItem value="roldana">Rolete Bumper nos cantos</SelectItem>
                 <SelectItem value="nao">Não</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label>Tipo de Piso</Label>
-          <Select value={data.tipoPiso} onValueChange={(v) => update('tipoPiso', v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="bruto">Bruto (Cimento)</SelectItem>
-              <SelectItem value="liso">Liso (Polido)</SelectItem>
-              <SelectItem value="epoxi">Epóxi</SelectItem>
-              <SelectItem value="outro">Outro</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label>Condição do Piso na Rota</Label>
+            <Select value={data.tipoPiso} onValueChange={(v) => update('tipoPiso', v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bruto">Bruto / Irregular (Concreto)</SelectItem>
+                <SelectItem value="liso">Liso (Polido)</SelectItem>
+                <SelectItem value="epoxi">Epóxi (Limpo/Sensível)</SelectItem>
+                <SelectItem value="asfalto">Asfalto / Externo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label>Altura Máxima (Base ao Solo) mm</Label>
+      <div className="space-y-4">
+        <div className="space-y-2 md:w-1/3">
+          <Label>Altura Máxima da Base ao Solo (mm)</Label>
           <Input
             type="number"
-            placeholder="Ex: 150"
+            placeholder="Espaço livre sob o carrinho"
             value={data.alturaBase || ''}
             onChange={(e) => update('alturaBase', e.target.value)}
           />
         </div>
+        <CasterSection data={data} update={update} baseHeight={data.alturaBase} />
       </div>
 
-      <CasterSection data={data} update={update} baseHeight={data.alturaBase} />
       <FinishingSection method={method} data={data} update={update} />
 
       <Button
         onClick={() => onAdd(data)}
         disabled={isError || !data.dimensoes}
-        className="w-full bg-[#1e4b8f] hover:bg-[#1e4b8f]/90 mt-6"
+        className="w-full bg-[#1e4b8f] hover:bg-[#1e4b8f]/90 mt-8 h-12 text-md font-semibold"
       >
-        <Plus className="w-4 h-4 mr-2" /> Adicionar Carrinho ao Conjunto
+        <Plus className="w-5 h-5 mr-2" /> Adicionar Carrinho / Rota de Movimentação
       </Button>
     </div>
   )
