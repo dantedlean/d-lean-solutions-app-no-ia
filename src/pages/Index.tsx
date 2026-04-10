@@ -223,13 +223,20 @@ export default function Index() {
               Iniciar Novo Orçamento
             </Button>
           </div>
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2">
             <Button
               variant="link"
               onClick={() => window.open('/engineering', '_blank')}
               className="text-muted-foreground hover:text-brand-blue"
             >
               Acessar Painel de Engenharia &rarr;
+            </Button>
+            <Button
+              variant="link"
+              onClick={() => window.open('/admin', '_blank')}
+              className="text-muted-foreground hover:text-brand-blue"
+            >
+              Acessar Painel Administrador &rarr;
             </Button>
           </div>
         </div>
@@ -239,12 +246,23 @@ export default function Index() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20 animate-fade-in-up">
-      <div className="flex justify-center mb-2">
+      <div className="flex justify-between items-center mb-2 relative">
+        <div className="w-24"></div>
         <img
           src="https://img.usecurling.com/i?q=industry&shape=fill&color=blue"
           alt="D-Lean Solutions"
           className="h-16 object-contain"
         />
+        <div className="w-24 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open('/admin', '_blank')}
+            className="text-xs text-brand-blue border-brand-blue hover:bg-blue-50"
+          >
+            Painel Admin
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between bg-white p-4 md:p-6 rounded-xl shadow-sm border">
