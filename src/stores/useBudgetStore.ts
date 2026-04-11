@@ -35,11 +35,24 @@ function setState(newState: Partial<typeof state>) {
   let hasChanges = false
   const nextState = { ...state }
 
-  // Shallow comparison para evitar re-renders desnecessários e impedir o erro "Maximum update depth exceeded"
+  // Comparação profunda para objetos e arrays (exceto arquivos) para impedir erro "Maximum update depth exceeded"
   for (const key in newState) {
     const k = key as keyof typeof state
-    if (nextState[k] !== newState[k]) {
-      nextState[k] = newState[k] as any
+    const newVal = newState[k]
+    const oldVal = nextState[k]
+
+    if (k === 'files') {
+      if (newVal !== oldVal) {
+        nextState[k] = newVal as any
+        hasChanges = true
+      }
+    } else if (typeof newVal === 'object' && newVal !== null) {
+      if (JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
+        nextState[k] = newVal as any
+        hasChanges = true
+      }
+    } else if (oldVal !== newVal) {
+      nextState[k] = newVal as any
       hasChanges = true
     }
   }

@@ -7,6 +7,7 @@ import { SellerTrackingDashboard } from '@/components/budget/SellerTrackingDashb
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { Save, Loader2, Building2, UserCircle, LogOut } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBudgetStore, budgetActions } from '@/stores/useBudgetStore'
