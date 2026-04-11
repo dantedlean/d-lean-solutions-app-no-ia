@@ -9,7 +9,37 @@ import EngineeringDashboard from './pages/EngineeringDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
-import { AuthProvider } from '@/hooks/use-auth'
+import Login from './pages/Login'
+import { AuthProvider, useAuth } from '@/hooks/use-auth'
+
+const AppRoutes = () => {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">
+        Carregando painel...
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Login />
+  }
+
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Index />} />
+        <Route path="/clients" element={<ClientDatabase />} />
+        <Route path="/catalog" element={<TechnicalCatalog />} />
+        <Route path="/engineering" element={<EngineeringDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  )
+}
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -17,16 +47,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/clients" element={<ClientDatabase />} />
-            <Route path="/catalog" element={<TechnicalCatalog />} />
-            <Route path="/engineering" element={<EngineeringDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppRoutes />
       </TooltipProvider>
     </AuthProvider>
   </BrowserRouter>

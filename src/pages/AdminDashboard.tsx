@@ -145,6 +145,9 @@ const Timeline = ({ history }: { history: any[] }) => {
   )
 }
 
+import { useAuth } from '@/hooks/use-auth'
+import { Paperclip, DownloadCloud } from 'lucide-react'
+
 export default function AdminDashboard() {
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
@@ -154,16 +157,21 @@ export default function AdminDashboard() {
   const [engStatus, setEngStatus] = useState<any>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
+  const { user, role } = useAuth()
+
   useEffect(() => {
     fetchQuotes()
-  }, [])
+  }, [user, role])
 
   const fetchQuotes = async () => {
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let query = supabase.from('quotes').select('*').order('created_at', { ascending: false })
+
+      if (role === 'vendedor' && user) {
+        query = query.eq('user_id', user.id)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 
@@ -343,7 +351,11 @@ export default function AdminDashboard() {
       <div className="flex flex-col gap-2 border-b-4 border-brand-orange pb-4">
         <h1 className="text-3xl font-bold tracking-tight text-[#1e4b8f] flex items-center gap-3">
           <LayoutDashboard className="w-7 h-7" />
-          Painel do Vendedor - Acompanhamento
+          {role === 'vendedor'
+            ? 'Painel do Vendedor - Meus Pedidos'
+            : role === 'engenharia'
+              ? 'Painel de Acompanhamento - Engenharia'
+              : 'Painel Administrativo - Visão Global'}
         </h1>
         <p className="text-muted-foreground text-lg">
           Visão centralizada e detalhada de todas as solicitações, histórico de status e retornos da
@@ -564,6 +576,44 @@ export default function AdminDashboard() {
                           </div>
                           <div className="p-6 bg-white">
                             <EquipmentList equipments={qData.equipments} />
+                          </div>
+                        </div>
+                      )}
+
+                      {qData?.engineer_files?.length > 0 && (
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                          <div className="bg-slate-50/80 border-b border-slate-200 px-5 py-3.5">
+                            <h3 className="text-sm font-bold text-[#1e4b8f] flex items-center gap-2 uppercase tracking-wider">
+                              <Paperclip className="w-4 h-4" /> Arquivos de Devolução (Engenharia)
+                            </h3>
+                          </div>
+                          <div className="p-6 bg-white space-y-3">
+                            {qData.engineer_files.map((file: any, i: number) => (
+                              <div
+                                key={i}
+                                className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-slate-50"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <FileText className="w-5 h-5 text-blue-500" />
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-700">{file.name}</p>
+                                    <p className="text-xs text-slate-500">
+                                      {(file.size / 1024).toFixed(2)} KB
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button variant="outline" size="sm" className="shadow-sm" asChild>
+                                  <a
+                                    href={file.url}
+                                    download={file.name}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    <DownloadCloud className="w-4 h-4 mr-1.5" /> Baixar
+                                  </a>
+                                </Button>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}

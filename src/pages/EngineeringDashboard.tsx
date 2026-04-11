@@ -18,7 +18,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDistanceToNow, format } from 'date-fns'
-import { Wand2, Package, Paperclip, FileText } from 'lucide-react'
+import { Wand2, Package, Paperclip, FileText, UploadCloud } from 'lucide-react'
 import { ptBR } from 'date-fns/locale'
 import { EquipmentList } from '@/components/engineering/EquipmentList'
 import { AttachmentList } from '@/components/engineering/AttachmentList'
@@ -361,13 +361,24 @@ export default function EngineeringDashboard() {
     fetchTasks()
   }, [])
 
-  const updateStatus = async (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, newStatus: string, quoteId: string) => {
     try {
       const { error } = await supabase
         .from('quote_engineering_status')
         .update({ status: newStatus })
         .eq('id', id)
       if (error) throw error
+
+      if (quoteId) {
+        await supabase.from('quotes').update({ status: newStatus }).eq('id', quoteId)
+        await supabase.from('quote_status_history').insert({
+          quote_id: quoteId,
+          new_status: newStatus,
+          changed_by: user?.id,
+          reason: 'Status atualizado pela Engenharia',
+        })
+      }
+
       setTasks(tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)))
       toast({
         title: 'Sucesso',
@@ -375,6 +386,41 @@ export default function EngineeringDashboard() {
       })
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const handleUploadEngineerFiles = async (task: any, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const newFiles = Array.from(files).map((f) => ({
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      url: URL.createObjectURL(f),
+    }))
+
+    const currentData = task.quotes?.data || {}
+    const engineer_files = currentData.engineer_files || []
+
+    const newData = {
+      ...currentData,
+      engineer_files: [...engineer_files, ...newFiles],
+    }
+
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({ data: newData })
+        .eq('id', task.quotes.id)
+      if (error) throw error
+
+      setTasks(
+        tasks.map((t) => (t.id === task.id ? { ...t, quotes: { ...t.quotes, data: newData } } : t)),
+      )
+      toast({ title: 'Sucesso', description: 'Arquivo(s) anexado(s) com sucesso.' })
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     }
   }
 
@@ -763,6 +809,50 @@ export default function EngineeringDashboard() {
                         </div>
                       )}
 
+                      <div className="pt-4 border-t border-slate-200 mt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                            <Paperclip className="w-3 h-3" /> Arquivos de Devolução (Engenharia)
+                          </label>
+                          <div>
+                            <input
+                              type="file"
+                              multiple
+                              className="hidden"
+                              id={`upload-${task.id}`}
+                              onChange={(e) => handleUploadEngineerFiles(task, e)}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => document.getElementById(`upload-${task.id}`)?.click()}
+                            >
+                              <UploadCloud className="w-3 h-3 mr-1" /> Anexar Arquivo
+                            </Button>
+                          </div>
+                        </div>
+                        {task.quotes?.data?.engineer_files?.length > 0 ? (
+                          <div className="space-y-2 mt-2">
+                            {task.quotes.data.engineer_files.map((f: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-2 bg-slate-50 border rounded text-xs"
+                              >
+                                <span className="truncate max-w-[200px] font-medium">{f.name}</span>
+                                <span className="text-slate-400">
+                                  {(f.size / 1024).toFixed(1)} KB
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-400 italic text-center py-2 bg-slate-50 rounded border border-dashed">
+                            Nenhum arquivo anexado para devolução
+                          </div>
+                        )}
+                      </div>
+
                       <div className="pt-3 mt-2 border-t border-slate-200/50">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
                           Notas da Engenharia Interna
@@ -860,7 +950,7 @@ export default function EngineeringDashboard() {
                         size="sm"
                         variant="outline"
                         className="flex-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200 font-bold bg-white shadow-sm"
-                        onClick={() => updateStatus(task.id, 'revisao_solicitada')}
+                        onClick={() => updateStatus(task.id, 'revisao_solicitada', task.quote_id)}
                         disabled={task.status === 'revisao_solicitada'}
                       >
                         <AlertTriangle className="w-4 h-4 mr-1 hidden sm:inline-block" />
@@ -869,11 +959,11 @@ export default function EngineeringDashboard() {
                       <Button
                         size="sm"
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold shadow-sm"
-                        onClick={() => updateStatus(task.id, 'aprovado')}
-                        disabled={task.status === 'aprovado'}
+                        onClick={() => updateStatus(task.id, 'concluido', task.quote_id)}
+                        disabled={task.status === 'concluido'}
                       >
                         <CheckCircle className="w-4 h-4 mr-1 hidden sm:inline-block" />
-                        Aprovar
+                        Concluir e Devolver
                       </Button>
                     </div>
                   </CardContent>
