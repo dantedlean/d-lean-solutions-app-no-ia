@@ -20,7 +20,7 @@ export function FinishingSection({ method, data, update }: any) {
         </h4>
         <div className="space-y-2">
           <Label>Tipo de Tubo (Lean Pipe)</Label>
-          <Select value={data.tipoTubo} onValueChange={(v) => update('tipoTubo', v)}>
+          <Select defaultValue={data.tipoTubo} onValueChange={(v) => update('tipoTubo', v)}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -34,7 +34,10 @@ export function FinishingSection({ method, data, update }: any) {
         </div>
         <div className="space-y-2">
           <Label>Espessura do Tubo</Label>
-          <Select value={data.espessuraTubo} onValueChange={(v) => update('espessuraTubo', v)}>
+          <Select
+            defaultValue={data.espessuraTubo}
+            onValueChange={(v) => update('espessuraTubo', v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -49,7 +52,7 @@ export function FinishingSection({ method, data, update }: any) {
         {data.tipoTubo === 'revestido' && (
           <div className="space-y-2 animate-fade-in">
             <Label>Cor do Tubo</Label>
-            <Select value={data.corTubo} onValueChange={(v) => update('corTubo', v)}>
+            <Select defaultValue={data.corTubo} onValueChange={(v) => update('corTubo', v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
@@ -77,7 +80,10 @@ export function FinishingSection({ method, data, update }: any) {
         </h4>
         <div className="space-y-2">
           <Label>Perfil Estrutural</Label>
-          <Select value={data.perfilSoldado} onValueChange={(v) => update('perfilSoldado', v)}>
+          <Select
+            defaultValue={data.perfilSoldado}
+            onValueChange={(v) => update('perfilSoldado', v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -92,7 +98,7 @@ export function FinishingSection({ method, data, update }: any) {
         <div className="space-y-2">
           <Label>Tratamento/Pintura</Label>
           <Select
-            value={data.tratamentoSoldado}
+            defaultValue={data.tratamentoSoldado}
             onValueChange={(v) => update('tratamentoSoldado', v)}
           >
             <SelectTrigger>
@@ -141,7 +147,10 @@ export function FinishingSection({ method, data, update }: any) {
         </h4>
         <div className="space-y-2">
           <Label>Linha do Perfil</Label>
-          <Select value={data.linhaAluminio} onValueChange={(v) => update('linhaAluminio', v)}>
+          <Select
+            defaultValue={data.linhaAluminio}
+            onValueChange={(v) => update('linhaAluminio', v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -157,7 +166,7 @@ export function FinishingSection({ method, data, update }: any) {
         <div className="space-y-2">
           <Label>Acabamento do Alumínio</Label>
           <Select
-            value={data.acabamentoAluminio}
+            defaultValue={data.acabamentoAluminio}
             onValueChange={(v) => update('acabamentoAluminio', v)}
           >
             <SelectTrigger>
@@ -200,7 +209,10 @@ export function CasterSection({ data, update, baseHeight }: any) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2">
           <Label>Diâmetro da Roda</Label>
-          <Select value={data.diametroRodizio} onValueChange={(v) => update('diametroRodizio', v)}>
+          <Select
+            defaultValue={data.diametroRodizio}
+            onValueChange={(v) => update('diametroRodizio', v)}
+          >
             <SelectTrigger className={isError ? 'border-red-500 bg-red-50 ring-red-500' : ''}>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -215,7 +227,10 @@ export function CasterSection({ data, update, baseHeight }: any) {
         </div>
         <div className="space-y-2">
           <Label>Material do Núcleo</Label>
-          <Select value={data.nucleoRodizio} onValueChange={(v) => update('nucleoRodizio', v)}>
+          <Select
+            defaultValue={data.nucleoRodizio}
+            onValueChange={(v) => update('nucleoRodizio', v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -230,7 +245,7 @@ export function CasterSection({ data, update, baseHeight }: any) {
         <div className="space-y-2">
           <Label>Revestimento da Roda</Label>
           <Select
-            value={data.revestimentoRodizio}
+            defaultValue={data.revestimentoRodizio}
             onValueChange={(v) => update('revestimentoRodizio', v)}
           >
             <SelectTrigger>
@@ -248,7 +263,10 @@ export function CasterSection({ data, update, baseHeight }: any) {
         </div>
         <div className="space-y-2">
           <Label>Tipo de Fixação</Label>
-          <Select value={data.fixacaoRodizio} onValueChange={(v) => update('fixacaoRodizio', v)}>
+          <Select
+            defaultValue={data.fixacaoRodizio}
+            onValueChange={(v) => update('fixacaoRodizio', v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -280,7 +298,7 @@ export function CasterSection({ data, update, baseHeight }: any) {
         </div>
         <div className="space-y-2">
           <Label>Freio (Nos Giratórios)</Label>
-          <Select value={data.freioRodizio} onValueChange={(v) => update('freioRodizio', v)}>
+          <Select defaultValue={data.freioRodizio} onValueChange={(v) => update('freioRodizio', v)}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -293,7 +311,10 @@ export function CasterSection({ data, update, baseHeight }: any) {
         </div>
         <div className="space-y-2 md:col-span-2">
           <Label>Proteção do Rodízio</Label>
-          <Select value={data.protecaoRodizio} onValueChange={(v) => update('protecaoRodizio', v)}>
+          <Select
+            defaultValue={data.protecaoRodizio}
+            onValueChange={(v) => update('protecaoRodizio', v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>

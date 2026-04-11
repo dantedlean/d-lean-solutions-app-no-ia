@@ -106,7 +106,7 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <Label>Sistema de Tração</Label>
-            <Select value={data.tracao} onValueChange={(v) => update('tracao', v)}>
+            <Select defaultValue={data.tracao} onValueChange={(v) => update('tracao', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -157,7 +157,7 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
 
           <div className="space-y-2">
             <Label>Puxador Ergonômico</Label>
-            <Select value={data.puxador} onValueChange={(v) => update('puxador', v)}>
+            <Select defaultValue={data.puxador} onValueChange={(v) => update('puxador', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -171,7 +171,7 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
 
           <div className="space-y-2">
             <Label>Freio Estacionário (Adicional)</Label>
-            <Select value={data.freio} onValueChange={(v) => update('freio', v)}>
+            <Select defaultValue={data.freio} onValueChange={(v) => update('freio', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -185,7 +185,7 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
 
           <div className="space-y-2">
             <Label>Fechamento Lateral</Label>
-            <Select value={data.fechamento} onValueChange={(v) => update('fechamento', v)}>
+            <Select defaultValue={data.fechamento} onValueChange={(v) => update('fechamento', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -215,7 +215,7 @@ export function CartForm({ method, onAdd }: { method: string; onAdd: (data: any)
 
           <div className="space-y-2">
             <Label>Condição do Piso na Rota</Label>
-            <Select value={data.tipoPiso} onValueChange={(v) => update('tipoPiso', v)}>
+            <Select defaultValue={data.tipoPiso} onValueChange={(v) => update('tipoPiso', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

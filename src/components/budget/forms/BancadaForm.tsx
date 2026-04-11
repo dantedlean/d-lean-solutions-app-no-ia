@@ -85,7 +85,10 @@ export function BancadaForm({ method, onAdd }: { method: string; onAdd: (data: a
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Material Base do Tampo</Label>
-            <Select value={data.materialTampo} onValueChange={(v) => update('materialTampo', v)}>
+            <Select
+              defaultValue={data.materialTampo}
+              onValueChange={(v) => update('materialTampo', v)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -105,14 +108,14 @@ export function BancadaForm({ method, onAdd }: { method: string; onAdd: (data: a
             <Input
               type="number"
               placeholder="Ex: 15, 18, 25"
-              value={data.espessuraTampo}
+              value={data.espessuraTampo || ''}
               onChange={(e) => update('espessuraTampo', e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
             <Label>Necessita Proteção ESD?</Label>
-            <Select value={data.esd} onValueChange={(v) => update('esd', v)}>
+            <Select defaultValue={data.esd} onValueChange={(v) => update('esd', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -267,7 +270,7 @@ export function BancadaForm({ method, onAdd }: { method: string; onAdd: (data: a
         <div className="space-y-4">
           <div className="space-y-2 md:w-1/3">
             <Label>Tipo de Apoio ao Solo</Label>
-            <Select value={data.base} onValueChange={(v) => update('base', v)}>
+            <Select defaultValue={data.base} onValueChange={(v) => update('base', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

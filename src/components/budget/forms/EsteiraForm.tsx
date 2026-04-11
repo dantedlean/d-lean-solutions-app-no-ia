@@ -75,7 +75,10 @@ export function EsteiraForm({ method, onAdd }: { method: string; onAdd: (data: a
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <Label>Tipo de Elemento Transportador</Label>
-            <Select value={data.transportador} onValueChange={(v) => update('transportador', v)}>
+            <Select
+              defaultValue={data.transportador}
+              onValueChange={(v) => update('transportador', v)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -169,7 +172,7 @@ export function EsteiraForm({ method, onAdd }: { method: string; onAdd: (data: a
 
           <div className="space-y-2">
             <Label>Conectividade (Módulos)</Label>
-            <Select value={data.modulo} onValueChange={(v) => update('modulo', v)}>
+            <Select defaultValue={data.modulo} onValueChange={(v) => update('modulo', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -205,7 +208,7 @@ export function EsteiraForm({ method, onAdd }: { method: string; onAdd: (data: a
         <div className="space-y-4">
           <div className="space-y-2 md:w-1/3">
             <Label>Tipo de Apoio ao Solo</Label>
-            <Select value={data.base} onValueChange={(v) => update('base', v)}>
+            <Select defaultValue={data.base} onValueChange={(v) => update('base', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

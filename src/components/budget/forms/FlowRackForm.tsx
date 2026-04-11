@@ -69,7 +69,7 @@ export function FlowRackForm({ method, onAdd }: { method: string; onAdd: (data: 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <Label>Tipo de Trilho (Pista)</Label>
-            <Select value={data.tipoTrilho} onValueChange={(v) => update('tipoTrilho', v)}>
+            <Select defaultValue={data.tipoTrilho} onValueChange={(v) => update('tipoTrilho', v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
@@ -218,7 +218,7 @@ export function FlowRackForm({ method, onAdd }: { method: string; onAdd: (data: 
         <div className="space-y-4">
           <div className="space-y-2 md:w-1/3">
             <Label>Tipo de Apoio ao Solo</Label>
-            <Select value={data.base} onValueChange={(v) => update('base', v)}>
+            <Select defaultValue={data.base} onValueChange={(v) => update('base', v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
