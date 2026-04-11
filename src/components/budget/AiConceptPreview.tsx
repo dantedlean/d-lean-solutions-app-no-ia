@@ -1,125 +1,146 @@
+import { useEffect, useRef } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useEffect } from 'react'
-import { Wand2, Loader2, Info } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Loader2, Wand2, Image as ImageIcon, Sparkles } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
+
+interface AiConceptPreviewProps {
+  equipments: any[]
+  files: File[]
+  prompt: string
+  setPrompt: (p: string) => void
+  aiImage: string | null
+  setAiImage: (img: string | null) => void
+  aiImageStatus: 'idle' | 'generating' | 'success' | 'error'
+  setAiImageStatus: (s: 'idle' | 'generating' | 'success' | 'error') => void
+}
 
 export function AiConceptPreview({
   equipments,
-  files,
   prompt,
   setPrompt,
   aiImage,
   setAiImage,
   aiImageStatus,
   setAiImageStatus,
-}: any) {
+}: AiConceptPreviewProps) {
+  const { toast } = useToast()
+  const prevEqCount = useRef(equipments.length)
+
+  // Atualizar prompt de forma segura, sem causar loops infinitos
   useEffect(() => {
-    if (!equipments || equipments.length === 0) return
+    if (equipments.length > 0 && equipments.length !== prevEqCount.current) {
+      prevEqCount.current = equipments.length
+      const types = equipments.map((e) => e.type).join(', ')
+      const suggestion = `Equipamento industrial 3D realístico: ${types}`
+      if (!prompt) {
+        setPrompt(suggestion)
+      }
+    }
+  }, [equipments.length, prompt, setPrompt])
 
-    const eq = equipments[0]
-    const data = eq.data || {}
-
-    let eqTypeEn = 'Industrial equipment'
-    const typeLower = (eq.type || '').toLowerCase()
-    if (typeLower.includes('bancada')) eqTypeEn = 'Industrial Workbench'
-    else if (typeLower.includes('carrinho')) eqTypeEn = 'Industrial Trolley/Cart'
-    else if (typeLower.includes('flow rack')) eqTypeEn = 'Gravity Flow Rack'
-    else if (eq.type) eqTypeEn = eq.type
-
-    let methodEn = 'steel structure'
-    const methodLower = (eq.method || data.method || '').toLowerCase()
-    if (methodLower === 'soldado') methodEn = 'Heavy-duty welded steel structure'
-    else if (methodLower === 'lean' || methodLower === 'modular')
-      methodEn = 'Lean modular pipe and joint system'
-    else if (methodLower === 'hibrido' || methodLower === 'híbrido')
-      methodEn = 'Hybrid structure: welded steel base with modular pipe upper frame'
-
-    const dimensoes = data.dimensoes_externas || data.dimensoes || eq.dimensoes || 'Standard'
-
-    let materialTopEn = 'Standard'
-    const tampoLower = (data.tampo || '').toLowerCase()
-    if (tampoLower.includes('mdf')) materialTopEn = 'MDF'
-    else if (tampoLower.includes('borracha')) materialTopEn = 'Rubber mat'
-    else if (tampoLower.includes('inox')) materialTopEn = 'Stainless steel'
-    else if (data.tampo) materialTopEn = data.tampo
-
-    const cor = data.corRal || data.corTubo || 'Blue'
-    const carga =
-      data.carga_tampo ||
-      data.cargaTotal ||
-      data.carga ||
-      data.peso ||
-      eq.cargaTotal ||
-      eq.carga ||
-      '100'
-
-    let generatedPrompt = `Studio photo of a SINGLE isolated ${eqTypeEn}, ${methodEn}, dimensions ${dimensoes}mm, ${materialTopEn} top, RAL ${cor} powder coating (Load capacity: ${carga}kg). Professional technical catalog lighting, solid neutral grey background, isometric view, 8k resolution, photorealistic industrial render. NO factory background, NO robots, NO people.`
-
-    generatedPrompt = generatedPrompt.replace(/aluminum/gi, 'steel').replace(/alumínio/gi, 'steel')
-
-    setPrompt(generatedPrompt)
-  }, [JSON.stringify(equipments), setPrompt])
-
-  const generateImage = async () => {
+  const handleGenerateImage = async () => {
+    if (!prompt) return
     setAiImageStatus('generating')
+
     try {
-      const res = await fetch('https://eswldmamqpvzrdhvwulc.supabase.co/functions/v1/adapta-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate_image', prompt, equipments }),
+      const { data, error } = await supabase.functions.invoke('adapta-ai', {
+        body: { action: 'generate_image', prompt, equipments },
       })
-      const data = await res.json()
-      if (data.imageUrl) {
+
+      if (error) throw error
+
+      if (data?.imageUrl) {
         setAiImage(data.imageUrl)
         setAiImageStatus('success')
+        toast({ title: 'Sucesso', description: 'Imagem conceito gerada pela IA.' })
       } else {
-        throw new Error('No image returned')
+        throw new Error('Nenhuma imagem retornada')
       }
-    } catch (e) {
+    } catch (e: any) {
+      console.error(e)
       setAiImageStatus('error')
+      toast({
+        title: 'Falha na IA',
+        description: 'Não foi possível gerar a imagem no momento.',
+        variant: 'destructive',
+      })
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wand2 className="w-5 h-5 text-blue-600" />
-          Conceito Visual IA
+    <Card className="border-brand-blue/20 shadow-sm">
+      <CardHeader className="bg-slate-50/80 border-b pb-4">
+        <CardTitle className="text-xl text-brand-blue flex items-center gap-2">
+          <Wand2 className="w-5 h-5" /> Adapta AI - Geração de Conceito
         </CardTitle>
+        <CardDescription>
+          Crie uma referência visual do projeto utilizando a Inteligência Artificial para enriquecer
+          a documentação enviada para engenharia.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="font-medium text-slate-500">PROMPT DE GERAÇÃO (Dinâmico)</span>
-          </div>
-          <textarea
+      <CardContent className="p-6 space-y-6">
+        <div className="flex gap-2">
+          <Input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            rows={4}
-            className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 font-mono"
-            placeholder="O prompt será gerado automaticamente com base nos equipamentos selecionados..."
+            placeholder="Descreva o equipamento (Ex: Bancada industrial em alumínio com prateleiras...)"
+            className="h-10"
           />
-          <div className="flex items-center text-xs text-blue-600 bg-blue-50 p-2 rounded">
-            <Info className="w-4 h-4 mr-2 flex-shrink-0" />
-            As traduções técnicas e as variáveis de carga/dimensão são injetadas em tempo real.
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Button onClick={generateImage} disabled={!prompt || aiImageStatus === 'generating'}>
+          <Button
+            onClick={handleGenerateImage}
+            disabled={!prompt || aiImageStatus === 'generating'}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white h-10 px-6"
+          >
             {aiImageStatus === 'generating' ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Wand2 className="w-4 h-4 mr-2" />
+              <Sparkles className="w-4 h-4 mr-2" />
             )}
-            Gerar Conceito Visual
+            Gerar Conceito
           </Button>
         </div>
 
-        {aiImage && (
-          <div className="mt-6 rounded-lg overflow-hidden border">
-            <img src={aiImage} alt="Conceito gerado" className="w-full object-cover" />
+        {aiImageStatus === 'generating' && (
+          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
+            <p className="text-slate-600 font-medium">
+              A IA está renderizando o seu equipamento...
+            </p>
+            <p className="text-xs text-slate-400 mt-1">Isso pode levar alguns segundos.</p>
+          </div>
+        )}
+
+        {aiImageStatus === 'success' && aiImage && (
+          <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group">
+            <img
+              src={aiImage}
+              alt="Conceito Gerado pela IA"
+              className="w-full h-auto object-cover max-h-[400px]"
+            />
+            <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-[10px] font-bold uppercase backdrop-blur-sm">
+              Gerado por IA
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => {
+                setAiImage(null)
+                setAiImageStatus('idle')
+              }}
+            >
+              Descartar Imagem
+            </Button>
+          </div>
+        )}
+
+        {aiImageStatus === 'idle' && !aiImage && (
+          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+            <ImageIcon className="w-10 h-10 text-slate-300 mb-2" />
+            <p className="text-sm text-slate-500 font-medium">Nenhum conceito gerado ainda.</p>
           </div>
         )}
       </CardContent>

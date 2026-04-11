@@ -13,7 +13,7 @@ export interface EquipmentData {
   data?: Record<string, any>
 }
 
-let state = {
+const initialState = {
   client: {} as ClientData,
   equipments: [] as EquipmentData[],
   files: [] as File[],
@@ -28,11 +28,48 @@ let state = {
   aiComments: '',
 }
 
+let state = { ...initialState }
 const listeners = new Set<() => void>()
 
 function setState(newState: Partial<typeof state>) {
-  state = { ...state, ...newState }
+  let hasChanges = false
+  const nextState = { ...state }
+
+  // Shallow comparison para evitar re-renders desnecessários e impedir o erro "Maximum update depth exceeded"
+  for (const key in newState) {
+    const k = key as keyof typeof state
+    if (nextState[k] !== newState[k]) {
+      nextState[k] = newState[k] as any
+      hasChanges = true
+    }
+  }
+
+  if (!hasChanges) return
+
+  state = nextState
   listeners.forEach((listener) => listener())
+}
+
+export const budgetActions = {
+  setClient: (client: ClientData) => setState({ client }),
+  addEquipment: (eq: EquipmentData) => setState({ equipments: [...state.equipments, eq] }),
+  removeEquipment: (id: string) =>
+    setState({ equipments: state.equipments.filter((e) => e.id !== id) }),
+  updateEquipment: (id: string, data: Partial<EquipmentData>) =>
+    setState({
+      equipments: state.equipments.map((e) => (e.id === id ? { ...e, ...data } : e)),
+    }),
+  addFiles: (newFiles: File[]) => setState({ files: [...state.files, ...newFiles] }),
+  setAiPrompt: (aiPrompt: string) => setState({ aiPrompt }),
+  setAiImage: (aiImage: string | null) => setState({ aiImage }),
+  setAiImageStatus: (aiImageStatus: typeof state.aiImageStatus) => setState({ aiImageStatus }),
+  setQuoteId: (quoteId: string | null) => setState({ quoteId }),
+  setQuoteStatus: (quoteStatus: string) => setState({ quoteStatus }),
+  setEngineeringDeadline: (engineeringDeadline: string | null) => setState({ engineeringDeadline }),
+  setIsReviewing: (isReviewing: boolean) => setState({ isReviewing }),
+  setAiJustification: (aiJustification: string) => setState({ aiJustification }),
+  setAiComments: (aiComments: string) => setState({ aiComments }),
+  reset: () => setState({ ...initialState }),
 }
 
 export const useBudgetStore = () => {
@@ -48,40 +85,7 @@ export const useBudgetStore = () => {
 
   return {
     ...localState,
-    setClient: (client: ClientData) => setState({ client }),
-    addEquipment: (eq: EquipmentData) => setState({ equipments: [...state.equipments, eq] }),
-    removeEquipment: (id: string) =>
-      setState({ equipments: state.equipments.filter((e) => e.id !== id) }),
-    updateEquipment: (id: string, data: Partial<EquipmentData>) =>
-      setState({
-        equipments: state.equipments.map((e) => (e.id === id ? { ...e, ...data } : e)),
-      }),
-    addFiles: (newFiles: File[]) => setState({ files: [...state.files, ...newFiles] }),
-    setAiPrompt: (aiPrompt: string) => setState({ aiPrompt }),
-    setAiImage: (aiImage: string | null) => setState({ aiImage }),
-    setAiImageStatus: (aiImageStatus: typeof state.aiImageStatus) => setState({ aiImageStatus }),
-    setQuoteId: (quoteId: string | null) => setState({ quoteId }),
-    setQuoteStatus: (quoteStatus: string) => setState({ quoteStatus }),
-    setEngineeringDeadline: (engineeringDeadline: string | null) =>
-      setState({ engineeringDeadline }),
-    setIsReviewing: (isReviewing: boolean) => setState({ isReviewing }),
-    setAiJustification: (aiJustification: string) => setState({ aiJustification }),
-    setAiComments: (aiComments: string) => setState({ aiComments }),
-    reset: () =>
-      setState({
-        client: {},
-        equipments: [],
-        files: [],
-        aiPrompt: '',
-        aiImage: null,
-        aiImageStatus: 'idle',
-        quoteId: null,
-        quoteStatus: 'briefing',
-        engineeringDeadline: null,
-        isReviewing: false,
-        aiJustification: '',
-        aiComments: '',
-      }),
+    ...budgetActions,
   }
 }
 
