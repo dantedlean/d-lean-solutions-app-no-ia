@@ -12,7 +12,9 @@ import {
   Clock,
   AlertTriangle,
   PlayCircle,
+  Send,
 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -23,8 +25,40 @@ interface SellerTrackingDashboardProps {
 
 export function SellerTrackingDashboard({ onReview }: SellerTrackingDashboardProps) {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [quotes, setQuotes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const sendToEngineering = async (quoteId: string) => {
+    try {
+      await supabase.from('quotes').update({ status: 'engenharia' }).eq('id', quoteId)
+
+      const { data: existing } = await supabase
+        .from('quote_engineering_status')
+        .select('id')
+        .eq('quote_id', quoteId)
+        .maybeSingle()
+
+      if (!existing) {
+        await supabase
+          .from('quote_engineering_status')
+          .insert({ quote_id: quoteId, status: 'engenharia' })
+      } else {
+        await supabase
+          .from('quote_engineering_status')
+          .update({ status: 'engenharia' })
+          .eq('quote_id', quoteId)
+      }
+
+      toast({
+        title: 'Enviado para Engenharia',
+        description: 'O projeto agora está na fila da engenharia.',
+      })
+      fetchQuotes()
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
 
   const fetchQuotes = async () => {
     if (!user) return
@@ -195,14 +229,23 @@ export function SellerTrackingDashboard({ onReview }: SellerTrackingDashboardPro
                       </Button>
                     )}
                     {!isConcluido && !isRevisao && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="bg-slate-100 text-slate-600"
-                        onClick={() => onReview(q)}
-                      >
-                        <PlayCircle className="w-4 h-4 mr-1" /> Continuar Edição
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-slate-100 text-slate-600"
+                          onClick={() => onReview(q)}
+                        >
+                          <PlayCircle className="w-4 h-4 mr-1" /> Continuar Edição
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-brand-blue text-white hover:bg-blue-700"
+                          onClick={() => sendToEngineering(q.id)}
+                        >
+                          <Send className="w-4 h-4 mr-1" /> Enviar p/ Engenharia
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>

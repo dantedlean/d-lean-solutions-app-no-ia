@@ -5,7 +5,18 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog'
 import {
   Loader2,
   CheckCircle,
@@ -19,6 +30,7 @@ import {
   UploadCloud,
   ArrowLeft,
   UserCircle,
+  CalendarDays,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -28,6 +40,7 @@ import { ptBR } from 'date-fns/locale'
 import { EquipmentList } from '@/components/engineering/EquipmentList'
 import { AttachmentList } from '@/components/engineering/AttachmentList'
 import { supabase } from '@/lib/supabase/client'
+import { GanttChart } from '@/components/engineering/GanttChart'
 
 const formatCompanyName = (task: any) => {
   const company = task.quotes?.data?.client || task.quotes?.data?.company
@@ -108,16 +121,53 @@ export default function EngineeringDashboard() {
     fetchTasks()
   }, [])
 
-  const updateStatus = async (id: string, newStatus: string, quoteId: string) => {
+  const updateDates = async (id: string, startDate: string, deadline: string) => {
     try {
-      await supabase.from('quote_engineering_status').update({ status: newStatus }).eq('id', id)
-      if (quoteId) {
-        await supabase.from('quotes').update({ status: newStatus }).eq('id', quoteId)
-      }
-      setTasks(tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)))
+      await supabase
+        .from('quote_engineering_status')
+        .update({ start_date: startDate || null, deadline: deadline || null })
+        .eq('id', id)
+      setTasks(
+        tasks.map((t) => (t.id === id ? { ...t, start_date: startDate, deadline: deadline } : t)),
+      )
+      toast({ title: 'Datas Atualizadas', description: 'Cronograma atualizado com sucesso.' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const concludeTask = async (task: any) => {
+    try {
+      await supabase
+        .from('quote_engineering_status')
+        .update({ status: 'concluido' })
+        .eq('id', task.id)
+      await supabase.from('quotes').update({ status: 'concluido' }).eq('id', task.quote_id)
+      setTasks(tasks.map((t) => (t.id === task.id ? { ...t, status: 'concluido' } : t)))
       toast({
-        title: 'Status Atualizado',
-        description: `O pedido agora está em: ${newStatus.replace('_', ' ')}`,
+        title: 'Concluído',
+        description: 'Projeto e proposta enviados ao vendedor com sucesso!',
+      })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const requestInformation = async (task: any, message: string) => {
+    try {
+      await supabase
+        .from('quote_engineering_status')
+        .update({ status: 'revisao_solicitada', engineer_notes: message })
+        .eq('id', task.id)
+      await supabase.from('quotes').update({ status: 'revisao_solicitada' }).eq('id', task.quote_id)
+      setTasks(
+        tasks.map((t) =>
+          t.id === task.id ? { ...t, status: 'revisao_solicitada', engineer_notes: message } : t,
+        ),
+      )
+      toast({
+        title: 'Solicitação Enviada',
+        description: 'Pedido de informações enviado ao vendedor.',
       })
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
@@ -225,8 +275,7 @@ export default function EngineeringDashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up pb-12 mt-4">
-      {/* Top Header Navigation */}
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up pb-12 mt-4 px-4 sm:px-0">
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-4">
           <Button
@@ -258,7 +307,12 @@ export default function EngineeringDashboard() {
       <Tabs defaultValue="queue" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="queue">Fila de Tarefas</TabsTrigger>
+          <TabsTrigger value="gantt">Agenda (Gantt)</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="gantt">
+          <GanttChart tasks={filteredTasks} />
+        </TabsContent>
 
         <TabsContent value="queue" className="space-y-4">
           <div className="flex gap-2 mb-4 bg-slate-50 p-1.5 rounded-lg border inline-flex shadow-sm">
@@ -321,6 +375,7 @@ export default function EngineeringDashboard() {
                       )}
                     </CardDescription>
                   </CardHeader>
+
                   <CardContent className="flex-1 flex flex-col gap-4">
                     <div className="text-sm space-y-3 bg-slate-50/50 p-3 rounded-md border flex-1">
                       <div className="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -334,16 +389,42 @@ export default function EngineeringDashboard() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 text-[10px] font-semibold text-brand-blue px-2 bg-blue-50 border border-blue-100"
+                            className="h-6 text-[10px] font-semibold text-brand-blue px-2 bg-blue-50 border border-blue-100 hover:bg-blue-100"
                             onClick={() => assignToMe(task.id)}
                           >
                             <UserPlus className="w-3 h-3 mr-1" /> Assumir
                           </Button>
                         ) : (
                           <span className="text-[10px] font-semibold bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded border border-brand-blue/20">
-                            Atribuído
+                            Atribuído a Mim
                           </span>
                         )}
+                      </div>
+
+                      {/* Cronograma (Início e Fim) */}
+                      <div className="flex gap-2 mb-3 mt-2">
+                        <div className="flex-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
+                            <CalendarDays className="w-3 h-3" /> Início
+                          </label>
+                          <Input
+                            type="date"
+                            className="h-8 text-xs px-2"
+                            value={task.start_date?.split('T')[0] || ''}
+                            onChange={(e) => updateDates(task.id, e.target.value, task.deadline)}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
+                            <CalendarDays className="w-3 h-3" /> Término
+                          </label>
+                          <Input
+                            type="date"
+                            className="h-8 text-xs px-2"
+                            value={task.deadline?.split('T')[0] || ''}
+                            onChange={(e) => updateDates(task.id, task.start_date, e.target.value)}
+                          />
+                        </div>
                       </div>
 
                       {(task.quotes?.data?.equipments?.length > 0 ||
@@ -436,7 +517,7 @@ export default function EngineeringDashboard() {
                               <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                             ) : (
                               <Wand2 className="w-3 h-3 mr-1" />
-                            )}
+                            )}{' '}
                             Gerar
                           </Button>
                         </div>
@@ -463,23 +544,55 @@ export default function EngineeringDashboard() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-1 mt-auto">
+                    <div className="flex flex-col gap-2 pt-1 mt-auto">
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-amber-600 border-amber-200 font-bold bg-amber-50/30 hover:bg-amber-50"
+                              disabled={task.status === 'revisao_solicitada'}
+                            >
+                              <AlertTriangle className="w-4 h-4 mr-1" /> Pedir Info ao Vendedor
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Solicitar Informações</DialogTitle>
+                              <DialogDescription>
+                                Detalhe ao vendedor o que está faltando para prosseguir com o
+                                projeto.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <Textarea
+                              placeholder="Faltou informar a carga máxima..."
+                              value={notes[task.id] || ''}
+                              onChange={(e) => setNotes({ ...notes, [task.id]: e.target.value })}
+                              className="min-h-[100px]"
+                            />
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button variant="outline">Cancelar</Button>
+                              </DialogClose>
+                              <DialogClose asChild>
+                                <Button
+                                  onClick={() => requestInformation(task, notes[task.id] || '')}
+                                >
+                                  Enviar Pedido
+                                </Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="flex-1 text-amber-600 border-amber-200 font-bold"
-                        onClick={() => updateStatus(task.id, 'revisao_solicitada', task.quote_id)}
-                        disabled={task.status === 'revisao_solicitada'}
-                      >
-                        <AlertTriangle className="w-4 h-4 mr-1" /> Solicitar Revisão
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
-                        onClick={() => updateStatus(task.id, 'concluido', task.quote_id)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-10"
+                        onClick={() => concludeTask(task)}
                         disabled={task.status === 'concluido'}
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" /> Concluir e Devolver
+                        <CheckCircle className="w-4 h-4 mr-2" /> Finalizar e Enviar Proposta
                       </Button>
                     </div>
                   </CardContent>
